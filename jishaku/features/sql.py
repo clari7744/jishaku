@@ -375,7 +375,7 @@ class SQLFeature(Feature):
 
         output = None
         async with adapter_shim.use():
-            async with ReplResponseReactor(ctx.message):
+            async with ReplResponseReactor(ctx):
                 with self.submit(ctx):
                     output = await adapter_shim.fetchrow(query)
 
@@ -412,7 +412,7 @@ class SQLFeature(Feature):
 
         output = None
         async with adapter_shim.use():
-            async with ReplResponseReactor(ctx.message):
+            async with ReplResponseReactor(ctx):
                 with self.submit(ctx):
                     output = await adapter_shim.fetch(query)
 
@@ -463,7 +463,7 @@ class SQLFeature(Feature):
 
         output = None
         async with adapter_shim.use():
-            async with ReplResponseReactor(ctx.message):
+            async with ReplResponseReactor(ctx):
                 with self.submit(ctx):
                     output = await adapter_shim.execute(query)
 
@@ -485,7 +485,7 @@ class SQLFeature(Feature):
 
         output = None
         async with adapter_shim.use():
-            async with ReplResponseReactor(ctx.message):
+            async with ReplResponseReactor(ctx):
                 with self.submit(ctx):
                     output = await adapter_shim.table_summary(query)
 
