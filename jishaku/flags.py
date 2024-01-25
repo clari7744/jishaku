@@ -25,7 +25,7 @@ ENABLED_SYMBOLS = ("true", "t", "yes", "y", "on", "1")
 DISABLED_SYMBOLS = ("false", "f", "no", "n", "off", "0")
 
 
-FlagHandler = typing.Optional[typing.Callable[['FlagMeta'], typing.Any]]
+FlagHandler = typing.Optional[typing.Callable[["FlagMeta"], typing.Any]]
 
 
 @dataclasses.dataclass
@@ -40,7 +40,9 @@ class Flag:
     handler: FlagHandler = None
     override: typing.Any = None
 
-    def resolve_raw(self, flags: 'FlagMeta'):  # pylint: disable=too-many-return-statements
+    def resolve_raw(
+        self, flags: "FlagMeta"
+    ):  # pylint: disable=too-many-return-statements
         """
         Receive the intrinsic value for this flag, before optionally being processed by the handler.
         """
@@ -70,7 +72,7 @@ class Flag:
 
         return self.flag_type()
 
-    def resolve(self, flags: 'FlagMeta'):
+    def resolve(self, flags: "FlagMeta"):
         """
         Resolve this flag. Only for internal use.
         Applies the handler when there is one.
@@ -94,9 +96,9 @@ class FlagMeta(type):
         cls,
         name: str,
         base: typing.Tuple[typing.Type[typing.Any]],
-        attrs: typing.Dict[str, typing.Any]
+        attrs: typing.Dict[str, typing.Any],
     ):
-        attrs['flag_map'] = {}
+        attrs["flag_map"] = {}
 
         if '__annotations__' in attrs:
             annotations = attrs['__annotations__']
@@ -137,14 +139,14 @@ class FlagMeta(type):
             if isinstance(default, tuple):
                 default, handler = default
 
-            attrs['flag_map'][flag_name] = Flag(flag_name, flag_type, default, handler)
+            attrs["flag_map"][flag_name] = Flag(flag_name, flag_type, default, handler)
 
         return super(FlagMeta, cls).__new__(cls, name, base, attrs)
 
     def __getattr__(cls, name: str):
         cls.flag_map: typing.Dict[str, Flag]
 
-        if hasattr(cls, 'flag_map') and name in cls.flag_map:
+        if hasattr(cls, "flag_map") and name in cls.flag_map:
             return cls.flag_map[name].resolve(cls)
 
         return super().__getattribute__(name)
@@ -154,7 +156,9 @@ class FlagMeta(type):
             flag = cls.flag_map[name]
 
             if not isinstance(value, flag.flag_type):
-                raise ValueError(f"Attempted to set flag {name} to type {type(value).__name__} (should be {flag.flag_type.__name__})")
+                raise ValueError(
+                    f"Attempted to set flag {name} to type {type(value).__name__} (should be {flag.flag_type.__name__})"
+                )
 
             flag.override = value
         else:
@@ -182,7 +186,7 @@ class Flags(metaclass=FlagMeta):  # pylint: disable=too-few-public-methods
 
     # The scope prefix, i.e. the prefix that appears before Jishaku's builtin variables in REPL sessions.
     # It is recommended that you set this programatically.
-    SCOPE_PREFIX: str = lambda flags: '' if flags.NO_UNDERSCORE else '_'  # type: ignore
+    SCOPE_PREFIX: str = lambda flags: "" if flags.NO_UNDERSCORE else "_"  # type: ignore
 
     # Flag to indicate whether to always use paginators over relying on Discord's file preview
     FORCE_PAGINATOR: bool
@@ -195,17 +199,19 @@ class Flags(metaclass=FlagMeta):  # pylint: disable=too-few-public-methods
     ALWAYS_DM_TRACEBACK: bool
 
     @classmethod
-    def traceback_destination(cls, message: discord.Message) -> typing.Optional[discord.abc.Messageable]:
+    def traceback_destination(
+        cls, ctx: ContextA
+    ) -> typing.Optional[discord.abc.Messageable]:
         """
         Determine what 'default' location to send tracebacks to
         When None, the caller should decide
         """
 
         if cls.ALWAYS_DM_TRACEBACK:
-            return message.author
+            return ctx.author
 
         if cls.NO_DM_TRACEBACK:
-            return message.channel
+            return ctx
 
         # Otherwise let the caller decide
         return None
@@ -232,4 +238,8 @@ class Flags(metaclass=FlagMeta):  # pylint: disable=too-few-public-methods
         if cls.USE_ANSI_ALWAYS:
             return True
 
-        return not ctx.author.is_on_mobile() if isinstance(ctx.author, discord.Member) and ctx.bot.intents.presences else True
+        return (
+            not ctx.author.is_on_mobile()
+            if isinstance(ctx.author, discord.Member) and ctx.bot.intents.presences
+            else True
+        )

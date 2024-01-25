@@ -128,6 +128,8 @@ class ManagementFeature(Feature):
         permissions = discord.Permissions()
 
         for perm in perms:
+            perm = perm.lower()
+            perm.replace("server", "guild")
             if perm not in dict(permissions):
                 raise commands.BadArgument(f"Invalid permission: {perm}")
 

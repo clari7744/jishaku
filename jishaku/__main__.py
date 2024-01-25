@@ -170,6 +170,5 @@ def entrypoint(
 
     asyncio.run(entry(bot, token))
 
-
 if __name__ == '__main__':
     entrypoint()  # pylint: disable=no-value-for-parameter
