@@ -16,7 +16,7 @@ import inspect
 
 from jishaku.formatting import LineFormatter, MultilineFormatter
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("== No Annotations Test ==")
     formatter = LineFormatter("one (two three) four")
 
@@ -52,10 +52,12 @@ if __name__ == '__main__':
     print(formatter.output(True, True))
 
     print("== Multiline ==")
-    formatter = MultilineFormatter(inspect.cleandoc("""
+    formatter = MultilineFormatter(
+        inspect.cleandoc("""
         one (two three) four
             five six seven eight nine
-    """))
+    """)
+    )
 
     formatter.add_annotation(0, "First", (0, 2), 34)
     formatter.add_annotation(0, "Second", (4, 14), 31, 33, 41)

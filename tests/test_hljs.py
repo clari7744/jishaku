@@ -17,12 +17,12 @@ from jishaku.hljs import get_language
 @pytest.mark.parametrize(
     ("filename", "language"),
     [
-        ('base.py', 'py'),
-        ('config.yml', 'yml'),
-        ('requirements.txt', ''),
-        ('#!/usr/bin/env python', 'python'),
-        ('#!/usr/bin/unknown', '')
-    ]
+        ("base.py", "py"),
+        ("config.yml", "yml"),
+        ("requirements.txt", ""),
+        ("#!/usr/bin/env python", "python"),
+        ("#!/usr/bin/unknown", ""),
+    ],
 )
 def test_hljs(filename: str, language: str):
     assert get_language(filename) == language

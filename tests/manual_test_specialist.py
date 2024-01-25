@@ -59,14 +59,23 @@ async def manual_t():
     async for result in executor:
         print(result)
 
-    for (index, (instruction, line, span, specialized, adaptive)) in enumerate(get_adaptive_spans(executor.function.__code__)):
+    for index, (instruction, line, span, specialized, adaptive) in enumerate(
+        get_adaptive_spans(executor.function.__code__)
+    ):
         print(instruction.opname, line)
 
         if line - 1 < len(formatter.lines):
-            formatter.add_annotation(line - 1, instruction.opname, span, (index % 6) + 31, None, 42 if specialized else 41 if adaptive else None)
+            formatter.add_annotation(
+                line - 1,
+                instruction.opname,
+                span,
+                (index % 6) + 31,
+                None,
+                42 if specialized else 41 if adaptive else None,
+            )
 
     print(formatter.output(True, True))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(manual_t())

@@ -14,18 +14,19 @@ Meta information about jishaku.
 import typing
 
 __all__ = (
-    '__author__',
-    '__copyright__',
-    '__docformat__',
-    '__license__',
-    '__title__',
-    '__version__',
-    'version_info'
+    "__author__",
+    "__copyright__",
+    "__docformat__",
+    "__license__",
+    "__title__",
+    "__version__",
+    "version_info",
 )
 
 
 class VersionInfo(typing.NamedTuple):
     """Version info named tuple for Jishaku"""
+
     major: int
     minor: int
     micro: int
@@ -33,11 +34,13 @@ class VersionInfo(typing.NamedTuple):
     serial: int
 
 
-version_info = VersionInfo(major=2, minor=7, micro=5, releaselevel='final', serial=0)
+version_info = VersionInfo(major=2, minor=7, micro=5, releaselevel="final", serial=0)
 
-__author__ = 'scarletcafe'
-__copyright__ = 'Copyright 2021 Devon (scarletcafe) R'
-__docformat__ = 'restructuredtext en'
-__license__ = 'MIT'
-__title__ = 'jishaku'
-__version__ = '.'.join(map(str, (version_info.major, version_info.minor, version_info.micro)))
+__author__ = "scarletcafe"
+__copyright__ = "Copyright 2021 Devon (scarletcafe) R"
+__docformat__ = "restructuredtext en"
+__license__ = "MIT"
+__title__ = "jishaku"
+__version__ = ".".join(
+    map(str, (version_info.major, version_info.minor, version_info.micro))
+)

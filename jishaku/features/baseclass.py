@@ -22,34 +22,23 @@ from typing_extensions import Concatenate, ParamSpec
 
 from jishaku.types import BotT, ContextA
 
-__all__ = (
-    'Feature',
-    'CommandTask'
-)
+__all__ = ("Feature", "CommandTask")
 
 
-_ConvertedCommand = commands.Command['Feature', typing.Any, typing.Any]
-_ConvertedGroup = commands.Group['Feature', typing.Any, typing.Any]
+_ConvertedCommand = commands.Command["Feature", typing.Any, typing.Any]
+_ConvertedGroup = commands.Group["Feature", typing.Any, typing.Any]
 
 
 _FeatureCommandToCommand = typing.Callable[
-    ...,
-    typing.Callable[
-        [typing.Callable[..., typing.Any]],
-        _ConvertedCommand
-    ]
+    ..., typing.Callable[[typing.Callable[..., typing.Any]], _ConvertedCommand]
 ]
 _FeatureCommandToGroup = typing.Callable[
-    ...,
-    typing.Callable[
-        [typing.Callable[..., typing.Any]],
-        _ConvertedGroup
-    ]
+    ..., typing.Callable[[typing.Callable[..., typing.Any]], _ConvertedGroup]
 ]
 
-T = typing.TypeVar('T')
-P = ParamSpec('P')
-GenericFeature = typing.TypeVar('GenericFeature', bound='Feature')
+T = typing.TypeVar("T")
+P = ParamSpec("P")
+GenericFeature = typing.TypeVar("GenericFeature", bound="Feature")
 
 
 class CommandTask(typing.NamedTuple):
@@ -59,7 +48,7 @@ class CommandTask(typing.NamedTuple):
 
     index: int  # type: ignore
     ctx: ContextA
-    task: typing.Optional['asyncio.Task[typing.Any]']
+    task: typing.Optional["asyncio.Task[typing.Any]"]
 
 
 class Feature(commands.Cog):
@@ -80,16 +69,18 @@ class Feature(commands.Cog):
             self,
             parent: typing.Optional[str] = None,
             standalone_ok: bool = False,
-            **kwargs: typing.Any
+            **kwargs: typing.Any,
         ):
             self.parent: typing.Optional[str] = parent
-            self.parent_instance: typing.Optional[Feature.Command[GenericFeature, typing.Any, typing.Any]] = None
+            self.parent_instance: typing.Optional[
+                Feature.Command[GenericFeature, typing.Any, typing.Any]
+            ] = None
             self.standalone_ok = standalone_ok
             self.kwargs = kwargs
             self.callback: typing.Optional[
                 typing.Callable[
                     Concatenate[GenericFeature, ContextA, P],
-                    typing.Coroutine[typing.Any, typing.Any, T]
+                    typing.Coroutine[typing.Any, typing.Any, T],
                 ]
             ] = None
             self.depth: int = 0
@@ -101,8 +92,8 @@ class Feature(commands.Cog):
                 ...,
                 # This causes a weird pyright bug right now
                 # Concatenate[GenericFeature, ContextA, P],
-                typing.Coroutine[typing.Any, typing.Any, T]
-            ]
+                typing.Coroutine[typing.Any, typing.Any, T],
+            ],
         ):
             self.callback = callback  # type: ignore
             return self
@@ -110,42 +101,50 @@ class Feature(commands.Cog):
         def convert(
             self,
             association_map: typing.Dict[
-                'Feature.Command[GenericFeature, typing.Any, typing.Any]',
-                'commands.Command[GenericFeature, typing.Any, typing.Any]',
-            ]
-        ) -> 'commands.Command[GenericFeature, P, T]':
+                "Feature.Command[GenericFeature, typing.Any, typing.Any]",
+                "commands.Command[GenericFeature, typing.Any, typing.Any]",
+            ],
+        ) -> "commands.Command[GenericFeature, P, T]":
             """
             Attempts to convert this Feature.Command into either a commands.Command or commands.Group
             """
 
             if self.parent:
                 if not self.parent_instance:
-                    raise RuntimeError("A Features.Command declared as having a parent was attempted to be converted before its parent was")
+                    raise RuntimeError(
+                        "A Features.Command declared as having a parent was attempted to be converted before its parent was"
+                    )
 
                 parent = association_map[self.parent_instance]
 
                 if not isinstance(parent, commands.Group):
-                    raise RuntimeError("A Features.Command declared as a parent was associated with a non-commands.Group")
+                    raise RuntimeError(
+                        "A Features.Command declared as a parent was associated with a non-commands.Group"
+                    )
 
                 command_type = parent.group if self.has_children else parent.command
             else:
                 command_type = commands.group if self.has_children else commands.command
 
             if not self.callback:
-                raise RuntimeError("A Features.Command lacked a callback at the time it was attempted to be converted")
+                raise RuntimeError(
+                    "A Features.Command lacked a callback at the time it was attempted to be converted"
+                )
 
             return command_type(**self.kwargs)(self.callback)
 
     load_time: datetime = datetime.now(timezone.utc)
 
     def __init__(self, *args: typing.Any, **kwargs: typing.Any):
-        self.bot: BotT = kwargs.pop('bot')
+        self.bot: BotT = kwargs.pop("bot")
         self.start_time: datetime = datetime.now(timezone.utc)
         self.tasks: typing.Deque[CommandTask] = collections.deque()
         self.task_count: int = 0
 
         # Generate and attach commands
-        command_lookup: typing.Dict[str, Feature.Command['Feature', typing.Any, typing.Any]] = {}
+        command_lookup: typing.Dict[
+            str, Feature.Command["Feature", typing.Any, typing.Any]
+        ] = {}
 
         for kls in reversed(type(self).__mro__):
             for key, cmd in kls.__dict__.items():
@@ -185,13 +184,12 @@ class Feature(commands.Cog):
         # Sort by depth
         command_set.sort(key=lambda c: c[1].depth)
         association_map: typing.Dict[
-            Feature.Command['Feature', typing.Any, typing.Any],
-            commands.Command['Feature', typing.Any, typing.Any]
+            Feature.Command["Feature", typing.Any, typing.Any],
+            commands.Command["Feature", typing.Any, typing.Any],
         ] = {}
 
         self.feature_commands: typing.Dict[
-            str,
-            commands.Command['Feature', typing.Any, typing.Any]
+            str, commands.Command["Feature", typing.Any, typing.Any]
         ] = {}
 
         for key, cmd in command_set:
@@ -201,7 +199,10 @@ class Feature(commands.Cog):
             setattr(self, key, target_cmd)
 
         # pylint: disable=protected-access, access-member-before-definition
-        self.__cog_commands__ = [*self.__cog_commands__, *self.feature_commands.values()]
+        self.__cog_commands__ = [
+            *self.__cog_commands__,
+            *self.feature_commands.values(),
+        ]
         # pylint: enable=protected-access, access-member-before-definition
 
         # Don't really think this does much, but init Cog anyway.

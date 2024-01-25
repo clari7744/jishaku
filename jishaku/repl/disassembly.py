@@ -35,7 +35,7 @@ async def _repl_coroutine({0}):
 """
 
 
-def wrap_code(code: str, args: str = '') -> ast.Module:
+def wrap_code(code: str, args: str = "") -> ast.Module:
     """
     Wraps code for disassembly.
 
@@ -44,8 +44,8 @@ def wrap_code(code: str, args: str = '') -> ast.Module:
     it's implemented separately here.
     """
 
-    user_code: ast.Module = import_expression.parse(code, mode='exec')  # type: ignore
-    mod: ast.Module = import_expression.parse(CORO_CODE.format(args), mode='exec')  # type: ignore
+    user_code: ast.Module = import_expression.parse(code, mode="exec")  # type: ignore
+    mod: ast.Module = import_expression.parse(CORO_CODE.format(args), mode="exec")  # type: ignore
 
     definition = mod.body[-1]  # async def ...:
     assert isinstance(definition, ast.AsyncFunctionDef)
@@ -80,7 +80,7 @@ def format_instruction(
     instruction: dis.Instruction,
     lineno_width: int = 4,
     mark_as_current: bool = False,
-    offset_width: int = 4
+    offset_width: int = 4,
 ) -> str:
     # This code is largely the same as the CPython 3.12 implementation of Instruction._disassemble:
     #  https://github.com/python/cpython/blob/3.12/Lib/dis.py
@@ -98,19 +98,19 @@ def format_instruction(
             lineno_fmt = "%%%dd" % lineno_width
             fields.append(lineno_fmt % instruction.starts_line)
         else:
-            fields.append(' ' * lineno_width)
+            fields.append(" " * lineno_width)
 
     # Column: Current instruction indicator
     if mark_as_current:
-        fields.append('-->')
+        fields.append("-->")
     else:
-        fields.append('   ')
+        fields.append("   ")
 
     # Column: Jump target marker
     if instruction.is_jump_target:
-        fields.append('>>')
+        fields.append(">>")
     else:
-        fields.append('  ')
+        fields.append("  ")
 
     # Column: Instruction offset from start of code sequence
     fields.append(repr(instruction.offset).rjust(offset_width))
@@ -124,15 +124,15 @@ def format_instruction(
 
         # Column: Opcode argument details
         if instruction.argrepr:
-            fields.append('(' + instruction.argrepr + ')')
+            fields.append("(" + instruction.argrepr + ")")
 
-    return ' '.join(fields).rstrip()
+    return " ".join(fields).rstrip()
 
 
 def disassemble(
     code: str,
     scope: typing.Optional[Scope] = None,
-    arg_dict: typing.Optional[typing.Dict[str, typing.Any]] = None
+    arg_dict: typing.Optional[typing.Dict[str, typing.Any]] = None,
 ) -> typing.Generator[str, None, None]:
     """
     Disassembles asynchronous code into dis.dis-style bytecode instructions.
@@ -143,10 +143,10 @@ def disassemble(
 
     scope = scope or Scope()
 
-    wrapped = wrap_code(code, args=', '.join(arg_names))
-    exec(compile(wrapped, '<repl>', 'exec'), scope.globals, scope.locals)  # pylint: disable=exec-used
+    wrapped = wrap_code(code, args=", ".join(arg_names))
+    exec(compile(wrapped, "<repl>", "exec"), scope.globals, scope.locals)  # pylint: disable=exec-used
 
-    func_def = scope.locals.get('_repl_coroutine') or scope.globals['_repl_coroutine']
+    func_def = scope.locals.get("_repl_coroutine") or scope.globals["_repl_coroutine"]
 
     for instruction in dis.get_instructions(  # type: ignore
         func_def, first_line=0
@@ -154,15 +154,19 @@ def disassemble(
         instruction: dis.Instruction
 
         if instruction.starts_line and instruction.offset > 0:
-            yield ''
+            yield ""
 
-        yield format_instruction(
-            instruction, 4, False, 4
-        )
+        yield format_instruction(instruction, 4, False, 4)
 
 
-TREE_CONTINUE = ('\N{BOX DRAWINGS HEAVY VERTICAL AND RIGHT}', '\N{BOX DRAWINGS HEAVY VERTICAL}')
-TREE_LAST = ('\N{BOX DRAWINGS HEAVY UP AND RIGHT}', '\N{BOX DRAWINGS LIGHT QUADRUPLE DASH VERTICAL}')
+TREE_CONTINUE = (
+    "\N{BOX DRAWINGS HEAVY VERTICAL AND RIGHT}",
+    "\N{BOX DRAWINGS HEAVY VERTICAL}",
+)
+TREE_LAST = (
+    "\N{BOX DRAWINGS HEAVY UP AND RIGHT}",
+    "\N{BOX DRAWINGS LIGHT QUADRUPLE DASH VERTICAL}",
+)
 
 
 def maybe_ansi(text: str, level: int, use_ansi: bool = True) -> str:
@@ -175,10 +179,10 @@ def maybe_ansi(text: str, level: int, use_ansi: bool = True) -> str:
 
 def format_ast_block(
     node: typing.Union[typing.List[ast.AST], ast.AST],
-    header: str = '',
+    header: str = "",
     level: int = 0,
     through: bool = False,
-    use_ansi: bool = True
+    use_ansi: bool = True,
 ) -> typing.Generator[str, None, None]:
     """
     Formats either an AST node, a list of AST nodes, or a constant.
@@ -201,20 +205,26 @@ def format_ast_block(
         header += "[{0}]: "
 
     for index, item in enumerate(node):
-        branch, stalk = TREE_LAST if index == len(node) - 1 and not through else TREE_CONTINUE
+        branch, stalk = (
+            TREE_LAST if index == len(node) - 1 and not through else TREE_CONTINUE
+        )
         branch, stalk = (
             maybe_ansi(f"{branch} {header}", level, use_ansi),
-            maybe_ansi(stalk, level, use_ansi)
+            maybe_ansi(stalk, level, use_ansi),
         )
 
-        for child_index, description in enumerate(format_ast_node(item, level=level + 1, use_ansi=use_ansi)):
+        for child_index, description in enumerate(
+            format_ast_node(item, level=level + 1, use_ansi=use_ansi)
+        ):
             if child_index == 0:
                 yield f"{branch.format(index)}{description}"
             else:
                 yield f"{stalk + (' ' * len(header.format(index)))} {description}"
 
 
-def format_ast_node(node: typing.Optional[ast.AST], level: int = 0, use_ansi: bool = True) -> typing.Generator[str, None, None]:
+def format_ast_node(
+    node: typing.Optional[ast.AST], level: int = 0, use_ansi: bool = True
+) -> typing.Generator[str, None, None]:
     """
     Recursively formats an AST node structure
 
@@ -236,7 +246,7 @@ def format_ast_node(node: typing.Optional[ast.AST], level: int = 0, use_ansi: bo
                 header=field,
                 through=index < len(fields) - 1,
                 level=level,
-                use_ansi=use_ansi
+                use_ansi=use_ansi,
             )
 
     else:
@@ -251,8 +261,8 @@ def create_tree(code: str, use_ansi: bool = True) -> str:
     Compiles code into an AST tree and then formats it
     """
 
-    user_code = import_expression.parse(code, mode='exec')  # type: ignore
-    return '\n'.join(format_ast_node(user_code, use_ansi=use_ansi))
+    user_code = import_expression.parse(code, mode="exec")  # type: ignore
+    return "\n".join(format_ast_node(user_code, use_ansi=use_ansi))
 
 
 def recurse_code(code: types.CodeType) -> typing.Generator[types.CodeType, None, None]:
@@ -269,9 +279,13 @@ def recurse_code(code: types.CodeType) -> typing.Generator[types.CodeType, None,
 
 if sys.version_info >= (3, 11):
     try:
-        SPECIALIZED_INSTRUCTIONS: typing.Set[str] = frozenset(opcode._specialized_opmap.keys())  # type: ignore  # pylint: disable=protected-access,no-member
+        SPECIALIZED_INSTRUCTIONS: typing.Set[str] = frozenset(
+            opcode._specialized_opmap.keys()
+        )  # type: ignore  # pylint: disable=protected-access,no-member
     except AttributeError:
-        SPECIALIZED_INSTRUCTIONS: typing.Set[str] = frozenset(opcode._specialized_instructions)  # type: ignore  # pylint: disable=protected-access,no-member
+        SPECIALIZED_INSTRUCTIONS: typing.Set[str] = frozenset(
+            opcode._specialized_instructions
+        )  # type: ignore  # pylint: disable=protected-access,no-member
 else:
     SPECIALIZED_INSTRUCTIONS: typing.Set[str] = frozenset()
 
@@ -299,19 +313,19 @@ SUPERINSTRUCTIONS = frozenset(
         "PRECALL_NO_KW_TYPE_1",
         "STORE_FAST__LOAD_FAST",
         "STORE_FAST__STORE_FAST",
-        "PRECALL_NO_KW_LIST_APPEND"
+        "PRECALL_NO_KW_LIST_APPEND",
     }
 )
 
 
-def get_adaptive_spans(code: types.CodeType) -> typing.Generator[
+def get_adaptive_spans(
+    code: types.CodeType,
+) -> typing.Generator[
     typing.Tuple[
-        dis.Instruction,
-        int,
-        typing.Optional[typing.Tuple[int, int]],
-        bool, bool
+        dis.Instruction, int, typing.Optional[typing.Tuple[int, int]], bool, bool
     ],
-    None, None
+    None,
+    None,
 ]:
     """
     Yields instructions from this code
@@ -342,7 +356,10 @@ def get_adaptive_spans(code: types.CodeType) -> typing.Generator[
             else:
                 span = (col_offset, end_col_offset)
 
-            if instruction.opname in SPECIALIZED_INSTRUCTIONS or instruction.opname in SUPERINSTRUCTIONS:
+            if (
+                instruction.opname in SPECIALIZED_INSTRUCTIONS
+                or instruction.opname in SUPERINSTRUCTIONS
+            ):
                 specialized = True
 
             if instruction.opname.endswith("_ADAPTIVE"):

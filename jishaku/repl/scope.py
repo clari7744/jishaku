@@ -30,12 +30,12 @@ class Scope:
         scope = Scope({'a': 3})  # a Scope with a pre-existing global scope key, and an empty local scope.
     """
 
-    __slots__ = ('globals', 'locals')
+    __slots__ = ("globals", "locals")
 
     def __init__(
         self,
         globals_: typing.Optional[typing.Dict[str, typing.Any]] = None,
-        locals_: typing.Optional[typing.Dict[str, typing.Any]] = None
+        locals_: typing.Optional[typing.Dict[str, typing.Any]] = None,
     ):
         self.globals: typing.Dict[str, typing.Any] = globals_ or {}
         self.locals: typing.Dict[str, typing.Any] = locals_ or {}
@@ -70,7 +70,7 @@ class Scope:
 
         return self
 
-    def update(self, other: 'Scope'):
+    def update(self, other: "Scope"):
         """
         Updates this scope with the content of another scope.
 
@@ -127,9 +127,7 @@ class Scope:
 
 
 def get_parent_scope_from_var(
-    name: str,
-    global_ok: bool = False,
-    skip_frames: int = 0
+    name: str, global_ok: bool = False, skip_frames: int = 0
 ) -> typing.Optional[Scope]:
     """
     Iterates up the frame stack looking for a frame-scope containing the given variable name.
@@ -142,7 +140,7 @@ def get_parent_scope_from_var(
 
     stack = inspect.stack()
     try:
-        for frame_info in stack[skip_frames + 1:]:
+        for frame_info in stack[skip_frames + 1 :]:
             frame = None
 
             try:
@@ -159,10 +157,7 @@ def get_parent_scope_from_var(
 
 
 def get_parent_var(
-    name: str,
-    global_ok: bool = False,
-    default: typing.Any = None,
-    skip_frames: int = 0
+    name: str, global_ok: bool = False, default: typing.Any = None, skip_frames: int = 0
 ) -> typing.Any:
     """
     Directly gets a variable from a parent frame-scope.
@@ -173,7 +168,9 @@ def get_parent_var(
         The content of the variable found by the given name, or None.
     """
 
-    scope = get_parent_scope_from_var(name, global_ok=global_ok, skip_frames=skip_frames + 1)
+    scope = get_parent_scope_from_var(
+        name, global_ok=global_ok, skip_frames=skip_frames + 1
+    )
 
     if not scope:
         return default

@@ -17,10 +17,10 @@ from jishaku.flags import Flags
 from jishaku.meta import *  # noqa: F403
 
 __all__ = (
-    'Jishaku',
-    'Feature',
-    'Flags',
-    'STANDARD_FEATURES',
-    'OPTIONAL_FEATURES',
-    'setup',
+    "Jishaku",
+    "Feature",
+    "Flags",
+    "STANDARD_FEATURES",
+    "OPTIONAL_FEATURES",
+    "setup",
 )

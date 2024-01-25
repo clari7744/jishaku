@@ -25,11 +25,13 @@ import click
 import discord
 from discord.ext import commands
 
-LOG_FORMAT: logging.Formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+LOG_FORMAT: logging.Formatter = logging.Formatter(
+    "%(asctime)s:%(levelname)s:%(name)s: %(message)s"
+)
 LOG_STREAM: logging.Handler = logging.StreamHandler(stream=sys.stdout)
 LOG_STREAM.setFormatter(LOG_FORMAT)
 
-LOGGER = logging.getLogger('jishaku.__main__')
+LOGGER = logging.getLogger("jishaku.__main__")
 
 
 async def entry(bot: commands.Bot, *args: typing.Any, **kwargs: typing.Any):
@@ -40,7 +42,7 @@ async def entry(bot: commands.Bot, *args: typing.Any, **kwargs: typing.Any):
     LOGGER.critical("Beginning async context")
     async with bot:
         LOGGER.critical("Loading jishaku")
-        await bot.load_extension('jishaku')
+        await bot.load_extension("jishaku")
 
         for extension in bot.extensions_to_load:  # type: ignore
             extension: str
@@ -48,30 +50,29 @@ async def entry(bot: commands.Bot, *args: typing.Any, **kwargs: typing.Any):
             await bot.load_extension(extension)
 
         LOGGER.critical(
-            'Generated a unique UUID for this session: %s'
-            '\nYou can use Jishaku with your bot once it starts using `%s::jsk <subcommand>`'
-            '\nIf you have no message content, you can prefix it with the mention: `@Bot %s::jsk <subcommand>`',
-            bot.unique_id, bot.unique_id, bot.unique_id  # type: ignore
+            "Generated a unique UUID for this session: %s"
+            "\nYou can use Jishaku with your bot once it starts using `%s::jsk <subcommand>`"
+            "\nIf you have no message content, you can prefix it with the mention: `@Bot %s::jsk <subcommand>`",
+            bot.unique_id,
+            bot.unique_id,
+            bot.unique_id,  # type: ignore
         )
 
         try:
             import pyperclip  # type: ignore # pylint: disable=import-outside-toplevel
         except ImportError:
             LOGGER.critical(
-                'If you install `pyperclip`, this prefix will be copied to your clipboard automatically.'
+                "If you install `pyperclip`, this prefix will be copied to your clipboard automatically."
             )
         else:
             try:
-                pyperclip.copy(f'{bot.unique_id}::jsk')  # type: ignore
+                pyperclip.copy(f"{bot.unique_id}::jsk")  # type: ignore
             except Exception as error:  # pylint: disable=broad-except
                 LOGGER.critical(
-                    'The prefix could not be copied to your clipboard: %s',
-                    error
+                    "The prefix could not be copied to your clipboard: %s", error
                 )
             else:
-                LOGGER.critical(
-                    'The prefix has been copied to your clipboard.'
-                )
+                LOGGER.critical("The prefix has been copied to your clipboard.")
 
         if not bot.skip_wait:  # type: ignore
             await asyncio.sleep(10)
@@ -83,19 +84,19 @@ async def entry(bot: commands.Bot, *args: typing.Any, **kwargs: typing.Any):
 
 
 @click.command()
-@click.argument('intents', nargs=-1)
-@click.argument('token')
-@click.option('--log-level', '-v', default='DEBUG')
-@click.option('--log-file', '-l', default=None)
-@click.option('--load-extension', '-e', multiple=True)
-@click.option('--skip-wait', '-s', default=False, is_flag=True)
+@click.argument("intents", nargs=-1)
+@click.argument("token")
+@click.option("--log-level", "-v", default="DEBUG")
+@click.option("--log-file", "-l", default=None)
+@click.option("--load-extension", "-e", multiple=True)
+@click.option("--skip-wait", "-s", default=False, is_flag=True)
 def entrypoint(
     intents: typing.Iterable[str],
     token: str,
     log_level: str,
     log_file: typing.Optional[str] = None,
     load_extension: typing.Iterable[str] = (),
-    skip_wait: bool = False
+    skip_wait: bool = False,
 ):
     """
     Entrypoint accessible through `python -m jishaku <TOKEN>`
@@ -113,7 +114,9 @@ def entrypoint(
     logger.addHandler(LOG_STREAM)
 
     if log_file:
-        log_file_handler: logging.Handler = logging.FileHandler(filename=log_file, encoding='utf-8', mode='a')
+        log_file_handler: logging.Handler = logging.FileHandler(
+            filename=log_file, encoding="utf-8", mode="a"
+        )
         log_file_handler.setFormatter(LOG_FORMAT)
         logger.addHandler(log_file_handler)
 
@@ -122,7 +125,7 @@ def entrypoint(
     default_intents = [name for name, value in discord.Intents.default() if value]
 
     for intent in intents:
-        if not intent.startswith(('+', '-')):
+        if not intent.startswith(("+", "-")):
             raise click.BadArgumentUsage(
                 f"Intent argument {intent} is invalid; intents must start with + or - (e.g. +all)"
             )
@@ -132,16 +135,17 @@ def entrypoint(
 
         if name in all_intents:
             setattr(intents_class, name, value)
-        elif name == 'all':
+        elif name == "all":
             intents_class = discord.Intents.all() if value else discord.Intents.none()
-        elif name == 'default':
+        elif name == "default":
             for default_intent in default_intents:
                 setattr(intents_class, default_intent, value)
         else:
             # pylint: disable=superfluous-parens
             # pylint you are wrong!! it breaks if you remove those!!
             maybe_you_meant = [
-                intent_name for intent_name in all_intents
+                intent_name
+                for intent_name in all_intents
                 if (name[1:-1] if len(name) > 3 else name) in intent_name
             ]
             # pylint: enable=superfluous-parens
@@ -158,9 +162,9 @@ def entrypoint(
 
     def prefix(bot: commands.Bot, _: discord.Message) -> typing.List[str]:
         return [
-            f'{bot.unique_id}::',  # type: ignore
-            f'<@{bot.user.id}> {bot.unique_id}::',  # type: ignore
-            f'<@!{bot.user.id}> {bot.unique_id}::',  # type: ignore
+            f"{bot.unique_id}::",  # type: ignore
+            f"<@{bot.user.id}> {bot.unique_id}::",  # type: ignore
+            f"<@!{bot.user.id}> {bot.unique_id}::",  # type: ignore
         ]
 
     bot = commands.Bot(prefix, intents=intents_class)
@@ -171,5 +175,5 @@ def entrypoint(
     asyncio.run(entry(bot, token))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     entrypoint()  # pylint: disable=no-value-for-parameter

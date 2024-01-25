@@ -24,7 +24,7 @@ from jishaku.features.baseclass import Feature
 from jishaku.paginators import PaginatorInterface, WrappedPaginator, use_file_check
 from jishaku.types import ContextA
 
-T = typing.TypeVar('T')
+T = typing.TypeVar("T")
 
 
 class Adapter(typing.Generic[T]):
@@ -70,7 +70,9 @@ class Adapter(typing.Generic[T]):
         """
         raise NotImplementedError()
 
-    async def table_summary(self, table_query: typing.Optional[str]) -> typing.Dict[str, typing.Dict[str, str]]:
+    async def table_summary(
+        self, table_query: typing.Optional[str]
+    ) -> typing.Dict[str, typing.Dict[str, str]]:
         """
         A function that queries to find table structures identified by this adapter.
 
@@ -84,7 +86,9 @@ class Adapter(typing.Generic[T]):
         raise NotImplementedError()
 
 
-KNOWN_ADAPTERS: typing.Dict[typing.Type[typing.Any], typing.Type[Adapter[typing.Any]]] = {}
+KNOWN_ADAPTERS: typing.Dict[
+    typing.Type[typing.Any], typing.Type[Adapter[typing.Any]]
+] = {}
 
 
 def adapter(*types: typing.Type[typing.Any]):
@@ -99,6 +103,7 @@ def adapter(*types: typing.Type[typing.Any]):
 
     return wrapper
 
+
 # pylint: disable=missing-class-docstring,missing-function-docstring
 
 
@@ -107,9 +112,14 @@ try:
 except ImportError:
     pass
 else:
+
     @adapter(asyncpg.Connection, asyncpg.pool.Pool)
-    class AsyncpgConnectionAdapter(Adapter[typing.Union[asyncpg.Connection, asyncpg.pool.Pool]]):
-        def __init__(self, connection: typing.Union[asyncpg.Connection, asyncpg.pool.Pool]):
+    class AsyncpgConnectionAdapter(
+        Adapter[typing.Union[asyncpg.Connection, asyncpg.pool.Pool]]
+    ):
+        def __init__(
+            self, connection: typing.Union[asyncpg.Connection, asyncpg.pool.Pool]
+        ):
             super().__init__(connection)
             self.connection: asyncpg.Connection = None  # type: ignore
 
@@ -124,11 +134,13 @@ else:
                 yield
 
         def info(self) -> str:
-            return " ".join((
-                f"asyncpg {asyncpg.__version__} {type(self.connector).__name__} connected to",
-                f"PostgreSQL server {'.'.join(str(x) for x in self.connection.get_server_version())}",  # type: ignore
-                f"on PID {self.connection.get_server_pid()}",
-            ))
+            return " ".join(
+                (
+                    f"asyncpg {asyncpg.__version__} {type(self.connector).__name__} connected to",
+                    f"PostgreSQL server {'.'.join(str(x) for x in self.connection.get_server_version())}",  # type: ignore
+                    f"on PID {self.connection.get_server_pid()}",
+                )
+            )
 
         async def fetchrow(self, query: str) -> typing.Dict[str, typing.Any]:
             value = await self.connection.fetchrow(query)  # type: ignore
@@ -143,8 +155,12 @@ else:
         async def execute(self, query: str) -> str:
             return await self.connection.execute(query)  # type: ignore
 
-        async def table_summary(self, table_query: typing.Optional[str]) -> typing.Dict[str, typing.Dict[str, str]]:
-            tables: typing.Dict[str, typing.Dict[str, str]] = collections.defaultdict(dict)
+        async def table_summary(
+            self, table_query: typing.Optional[str]
+        ) -> typing.Dict[str, typing.Dict[str, str]]:
+            tables: typing.Dict[str, typing.Dict[str, str]] = collections.defaultdict(
+                dict
+            )
 
             for record in await self.connection.fetch(  # type: ignore
                 """
@@ -158,11 +174,12 @@ else:
                 table_name ASC,
                 ordinal_position ASC
                 """,
-                table_query
+                table_query,
             ):
                 table_name: str = f"{record['table_catalog']}.{record['table_schema']}.{record['table_name']}"  # type: ignore
-                tables[table_name][record['column_name']] = (  # type: ignore
-                    record['data_type'].upper() + (' NOT NULL' if record['is_nullable'] == 'NO' else '')  # type: ignore
+                tables[table_name][record["column_name"]] = (  # type: ignore
+                    record["data_type"].upper()
+                    + (" NOT NULL" if record["is_nullable"] == "NO" else "")  # type: ignore
                 )
 
             return tables
@@ -173,9 +190,14 @@ try:
 except ImportError:
     pass
 else:
+
     @adapter(aiomysql.Connection, aiomysql.Pool)
-    class AioMySQLConnectionAdapter(Adapter[typing.Union[aiomysql.Connection, aiomysql.Pool]]):
-        def __init__(self, connection: typing.Union[aiomysql.Connection, aiomysql.Pool]):
+    class AioMySQLConnectionAdapter(
+        Adapter[typing.Union[aiomysql.Connection, aiomysql.Pool]]
+    ):
+        def __init__(
+            self, connection: typing.Union[aiomysql.Connection, aiomysql.Pool]
+        ):
             super().__init__(connection)
             self.connection: aiomysql.Connection = None  # type: ignore
 
@@ -190,10 +212,12 @@ else:
                 yield
 
         def info(self) -> str:
-            return " ".join((
-                f"aiomysql {aiomysql.__version__} {type(self.connector).__name__} connected to",
-                f"MySQL server (Database: {self.connection.db}, User: {self.connection.user})",  # type: ignore
-            ))
+            return " ".join(
+                (
+                    f"aiomysql {aiomysql.__version__} {type(self.connector).__name__} connected to",
+                    f"MySQL server (Database: {self.connection.db}, User: {self.connection.user})",  # type: ignore
+                )
+            )
 
         async def fetchrow(self, query: str) -> typing.Dict[str, typing.Any]:
             cursor = await self.connection.cursor(aiomysql.DictCursor)  # type: ignore
@@ -222,8 +246,12 @@ else:
             finally:
                 await cursor.close()  # type: ignore
 
-        async def table_summary(self, table_query: typing.Optional[str]) -> typing.Dict[str, typing.Dict[str, str]]:
-            tables: typing.Dict[str, typing.Dict[str, str]] = collections.defaultdict(dict)
+        async def table_summary(
+            self, table_query: typing.Optional[str]
+        ) -> typing.Dict[str, typing.Dict[str, str]]:
+            tables: typing.Dict[str, typing.Dict[str, str]] = collections.defaultdict(
+                dict
+            )
 
             cursor = await self.connection.cursor(aiomysql.DictCursor)  # type: ignore
             try:
@@ -238,13 +266,14 @@ else:
                     TABLE_NAME ASC,
                     ORDINAL_POSITION ASC
                     """,
-                    (table_query, table_query)
+                    (table_query, table_query),
                 )
 
                 for record in await cursor.fetchall():  # type: ignore
                     table_name: str = f"{record['TABLE_CATALOG']}.{record['TABLE_SCHEMA']}.{record['TABLE_NAME']}"  # type: ignore
-                    tables[table_name][record['COLUMN_NAME']] = (  # type: ignore
-                        record['DATA_TYPE'].upper() + (' NOT NULL' if record['IS_NULLABLE'] == 'NO' else '')  # type: ignore
+                    tables[table_name][record["COLUMN_NAME"]] = (  # type: ignore
+                        record["DATA_TYPE"].upper()
+                        + (" NOT NULL" if record["IS_NULLABLE"] == "NO" else "")  # type: ignore
                     )
             finally:
                 await cursor.close()  # type: ignore
@@ -259,8 +288,11 @@ try:
 except ImportError:
     pass
 else:
+
     @adapter(asqlite.Connection, asqlite.Pool)
-    class AsqliteConnectionAdapter(Adapter[typing.Union[asqlite.Connection, asqlite.Pool]]):
+    class AsqliteConnectionAdapter(
+        Adapter[typing.Union[asqlite.Connection, asqlite.Pool]]
+    ):
         def __init__(self, connection: typing.Union[asqlite.Connection, asqlite.Pool]):
             super().__init__(connection)
             self.connection: asqlite.Connection = None  # type: ignore
@@ -290,52 +322,63 @@ else:
             # output status strings like other RDBMS systems.
             return str((await self.connection.execute(query)).get_cursor().rowcount)
 
-        async def table_summary(self, table_query: typing.Optional[str]) -> typing.Dict[str, typing.Dict[str, str]]:
-            tables: typing.Dict[str, typing.Dict[str, str]] = collections.defaultdict(dict)
+        async def table_summary(
+            self, table_query: typing.Optional[str]
+        ) -> typing.Dict[str, typing.Dict[str, str]]:
+            tables: typing.Dict[str, typing.Dict[str, str]] = collections.defaultdict(
+                dict
+            )
 
             if table_query:
                 for row in await self.connection.fetchall(
                     "SELECT name, type, `notnull`, dflt_value, pk from pragma_table_info(?);",
                     table_query,
                 ):
-                    tables[table_query][row['name']] = self.format_column_row(row)
+                    tables[table_query][row["name"]] = self.format_column_row(row)
 
             else:
-                for row in await self.connection.fetchall("SELECT name FROM sqlite_master WHERE type = 'table';"):
-                    name = row['name']
+                for row in await self.connection.fetchall(
+                    "SELECT name FROM sqlite_master WHERE type = 'table';"
+                ):
+                    name = row["name"]
 
                     for table_column in await self.connection.fetchall(
                         "SELECT name, type, `notnull`, dflt_value, pk from pragma_table_info(?);",
                         name,
                     ):
-                        tables[name][table_column['name']] = self.format_column_row(table_column)
+                        tables[name][table_column["name"]] = self.format_column_row(
+                            table_column
+                        )
 
             return tables
 
         def format_column_row(self, row: sqlite3.Row) -> str:
-            default = row['dflt_value']
-            not_null = " NOT NULL" if row['notnull'] == 1 else ""
+            default = row["dflt_value"]
+            not_null = " NOT NULL" if row["notnull"] == 1 else ""
             default_value = f" DEFAULT {default}" if default else ""
-            primary_key = " PRIMARY KEY" if row['pk'] else ""
+            primary_key = " PRIMARY KEY" if row["pk"] else ""
 
             return f"{row['type']}{not_null}{default_value}{primary_key}"
 
 
 # pylint: enable=missing-class-docstring,missing-function-docstring
 
+
 class SQLFeature(Feature):
     """
     Feature containing SQL-related commands
     """
 
-    JSK_TRY_ATTRIBUTES = ('database_pool', 'database', 'db_pool', 'db', 'pool')
+    JSK_TRY_ATTRIBUTES = ("database_pool", "database", "db_pool", "db", "pool")
 
-    def jsk_find_adapter(self, ctx: ContextA) -> typing.Union[typing.Tuple[Adapter[typing.Any], str], typing.Tuple[None, None]]:
+    def jsk_find_adapter(
+        self, ctx: ContextA
+    ) -> typing.Union[typing.Tuple[Adapter[typing.Any], str], typing.Tuple[None, None]]:
         """
         Attempts to search for a working database adapter, returning (Adapter, location) if one is found.
         """
 
-        for name_a, source in (('ctx', ctx), ('bot', ctx.bot)):
+        for name_a, source in (("ctx", ctx), ("bot", ctx.bot)):
             for attribute in self.JSK_TRY_ATTRIBUTES:
                 maybe_adapter = getattr(source, attribute, None)
 
@@ -348,7 +391,9 @@ class SQLFeature(Feature):
 
         return None, None
 
-    @Feature.Command(parent="jsk", name="sql", invoke_without_command=True, ignore_extra=False)
+    @Feature.Command(
+        parent="jsk", name="sql", invoke_without_command=True, ignore_extra=False
+    )
     async def jsk_sql(self, ctx: ContextA):
         """
         Parent for SQL adapter related commands
@@ -375,7 +420,7 @@ class SQLFeature(Feature):
 
         output = None
         async with adapter_shim.use():
-            async with ReplResponseReactor(ctx.message):
+            async with ReplResponseReactor(ctx):
                 with self.submit(ctx):
                     output = await adapter_shim.fetchrow(query)
 
@@ -385,13 +430,18 @@ class SQLFeature(Feature):
         if not output:
             return await ctx.reply("No results produced.")
 
-        text = tabulate({key: [value] for key, value in output.items()}, headers='keys', tablefmt='psql')
+        text = tabulate(
+            {key: [value] for key, value in output.items()},
+            headers="keys",
+            tablefmt="psql",
+        )
 
         if use_file_check(ctx, len(text)):
-            await ctx.reply(file=discord.File(
-                filename="response.txt",
-                fp=io.BytesIO(text.encode('utf-8'))
-            ))
+            await ctx.reply(
+                file=discord.File(
+                    filename="response.txt", fp=io.BytesIO(text.encode("utf-8"))
+                )
+            )
         else:
             paginator = WrappedPaginator(max_size=1980)
             paginator.add_line(text)
@@ -412,7 +462,7 @@ class SQLFeature(Feature):
 
         output = None
         async with adapter_shim.use():
-            async with ReplResponseReactor(ctx.message):
+            async with ReplResponseReactor(ctx):
                 with self.submit(ctx):
                     output = await adapter_shim.fetch(query)
 
@@ -422,19 +472,22 @@ class SQLFeature(Feature):
         if not output:
             return await ctx.reply("No results produced.")
 
-        aggregator: typing.Dict[str, typing.List[typing.Any]] = collections.defaultdict(list)
+        aggregator: typing.Dict[str, typing.List[typing.Any]] = collections.defaultdict(
+            list
+        )
 
         for record in output:
             for key, value in record.items():
                 aggregator[key].append(value)
 
-        text = tabulate(aggregator, headers='keys', tablefmt='psql')
+        text = tabulate(aggregator, headers="keys", tablefmt="psql")
 
         if use_file_check(ctx, len(text)):
-            await ctx.reply(file=discord.File(
-                filename="response.txt",
-                fp=io.BytesIO(text.encode('utf-8'))
-            ))
+            await ctx.reply(
+                file=discord.File(
+                    filename="response.txt", fp=io.BytesIO(text.encode("utf-8"))
+                )
+            )
         else:
             paginator = WrappedPaginator(max_size=1980)
             paginator.add_line(text)
@@ -448,7 +501,7 @@ class SQLFeature(Feature):
         Shortcut for 'jsk sql fetch select'.
         """
 
-        await ctx.invoke(self.jsk_sql_fetch, query=f'SELECT {query}')  # type: ignore
+        await ctx.invoke(self.jsk_sql_fetch, query=f"SELECT {query}")  # type: ignore
 
     @Feature.Command(parent="jsk_sql", name="execute")
     async def jsk_sql_execute(self, ctx: ContextA, *, query: str):
@@ -463,7 +516,7 @@ class SQLFeature(Feature):
 
         output = None
         async with adapter_shim.use():
-            async with ReplResponseReactor(ctx.message):
+            async with ReplResponseReactor(ctx):
                 with self.submit(ctx):
                     output = await adapter_shim.execute(query)
 
@@ -473,7 +526,9 @@ class SQLFeature(Feature):
         await ctx.reply(content=output)
 
     @Feature.Command(parent="jsk_sql", name="schema")
-    async def jsk_sql_schema(self, ctx: ContextA, *, query: typing.Optional[str] = None):
+    async def jsk_sql_schema(
+        self, ctx: ContextA, *, query: typing.Optional[str] = None
+    ):
         """
         Queries for the current schema and shows located table structures.
         """
@@ -485,7 +540,7 @@ class SQLFeature(Feature):
 
         output = None
         async with adapter_shim.use():
-            async with ReplResponseReactor(ctx.message):
+            async with ReplResponseReactor(ctx):
                 with self.submit(ctx):
                     output = await adapter_shim.table_summary(query)
 
@@ -495,15 +550,15 @@ class SQLFeature(Feature):
         if not output:
             return await ctx.reply("No results produced.")
 
-        paginator = WrappedPaginator(prefix='```sql', max_size=1980)
+        paginator = WrappedPaginator(prefix="```sql", max_size=1980)
 
         for table, structure in output.items():
-            paginator.add_line(f'{table} (')
+            paginator.add_line(f"{table} (")
 
             for column_name, remarks in structure.items():
-                paginator.add_line(f'    {column_name:30} {remarks},')
+                paginator.add_line(f"    {column_name:30} {remarks},")
 
-            paginator.add_line(')')
+            paginator.add_line(")")
             paginator.close_page()
 
         interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)

@@ -67,30 +67,26 @@ def nested_mocks(ctx, standards, coros):
 
 @contextlib.contextmanager
 def mock_ctx(bot: typing.Optional[commands.Bot] = None):
-    ctx = mock.MagicMock(name='ctx')
+    ctx = mock.MagicMock(name="ctx")
 
     standard_mocks = []
 
     coro_mocks = [
-        ('bot', 'get_context'),
-        ('message', 'channel', 'send'),
-        ('message', 'channel', 'send', 'coro', 'return_value', 'add_reaction'),
-        ('message', 'channel', 'send', 'coro', 'return_value', 'delete'),
-        ('message', 'channel', 'send', 'coro', 'return_value', 'edit'),
-        ('message', 'channel', 'send', 'coro', 'return_value', 'remove_reaction'),
-        ('reinvoke',)
+        ("bot", "get_context"),
+        ("message", "channel", "send"),
+        ("message", "channel", "send", "coro", "return_value", "add_reaction"),
+        ("message", "channel", "send", "coro", "return_value", "delete"),
+        ("message", "channel", "send", "coro", "return_value", "edit"),
+        ("message", "channel", "send", "coro", "return_value", "remove_reaction"),
+        ("reinvoke",),
     ]
 
     if bot:
         ctx.bot = bot
-        standard_mocks.append(
-            ('bot', '_connection', 'user')
-        )
+        standard_mocks.append(("bot", "_connection", "user"))
     else:
         ctx.bot.loop = asyncio.get_event_loop()
-        standard_mocks.append(
-            ('bot', 'user')
-        )
+        standard_mocks.append(("bot", "user"))
 
     with nested_mocks(ctx, standard_mocks, coro_mocks):
         ctx.author = ctx.message.author

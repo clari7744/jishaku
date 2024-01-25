@@ -22,11 +22,11 @@ def natural_size(size_in_bytes: int) -> str:
         1024 -> 1.00 KiB
         12345678 -> 11.77 MiB
     """
-    units = ('B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB')
+    units = ("B", "KiB", "MiB", "GiB", "TiB", "PiB", "EiB", "ZiB", "YiB")
 
     power = int(math.log(max(abs(size_in_bytes), 1), 1024))
 
-    return f"{size_in_bytes / (1024 ** power):.2f} {units[power]}"
+    return f"{size_in_bytes / (1024**power):.2f} {units[power]}"
 
 
 def natural_time(time_in_seconds: float) -> str:
@@ -38,10 +38,10 @@ def natural_time(time_in_seconds: float) -> str:
         0.0001 -> 100.00 us
     """
     units = (
-        ('mi', 60),
-        (' s', 1),
-        ('ms', 1e-3),
-        ('\N{GREEK SMALL LETTER MU}s', 1e-6),
+        ("mi", 60),
+        (" s", 1),
+        ("ms", 1e-3),
+        ("\N{GREEK SMALL LETTER MU}s", 1e-6),
     )
 
     absolute = abs(time_in_seconds)
@@ -61,7 +61,10 @@ def mean_stddev(collection: typing.Collection[float]) -> typing.Tuple[float, flo
     average = sum(collection) / len(collection)
 
     if len(collection) > 1:
-        stddev = math.sqrt(sum(math.pow(reading - average, 2) for reading in collection) / (len(collection) - 1))
+        stddev = math.sqrt(
+            sum(math.pow(reading - average, 2) for reading in collection)
+            / (len(collection) - 1)
+        )
     else:
         stddev = 0.0
 
@@ -112,6 +115,8 @@ def format_bargraph(value: float, blocks: int) -> str:
 
     filled_blocks, percentage = divmod(max(min(value, 1.0), 0.0) * blocks, 1.0)
 
-    fill = ("\N{FULL BLOCK}" * int(filled_blocks)) + (get_single_bargraph_block(percentage) if percentage > 0.0 else "")
+    fill = ("\N{FULL BLOCK}" * int(filled_blocks)) + (
+        get_single_bargraph_block(percentage) if percentage > 0.0 else ""
+    )
 
     return fill + (" " * (blocks - len(fill)))

@@ -24,7 +24,7 @@ async def copy_context_with(
     *,
     author: typing.Optional[typing.Union[discord.Member, discord.User]] = None,
     channel: typing.Optional[discord.TextChannel] = None,
-    **kwargs: typing.Any
+    **kwargs: typing.Any,
 ) -> ContextT:
     """
     Makes a new :class:`Context` with changed message properties.

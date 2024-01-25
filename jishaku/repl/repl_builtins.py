@@ -33,7 +33,9 @@ async def http_get_bytes(*args: typing.Any, **kwargs: typing.Any) -> bytes:
             return await response.read()
 
 
-async def http_get_json(*args: typing.Any, **kwargs: typing.Any) -> typing.Dict[typing.Any, typing.Any]:
+async def http_get_json(
+    *args: typing.Any, **kwargs: typing.Any
+) -> typing.Dict[typing.Any, typing.Any]:
     """
     Performs a HTTP GET request against a URL,
     returning the response payload as a dictionary of the response payload interpreted as JSON.
@@ -62,7 +64,9 @@ async def http_post_bytes(*args: typing.Any, **kwargs: typing.Any) -> bytes:
             return await response.read()
 
 
-async def http_post_json(*args: typing.Any, **kwargs: typing.Any) -> typing.Dict[typing.Any, typing.Any]:
+async def http_post_json(
+    *args: typing.Any, **kwargs: typing.Any
+) -> typing.Dict[typing.Any, typing.Any]:
     """
     Performs a HTTP POST request against a URL,
     returning the response payload as a dictionary of the response payload interpreted as JSON.
@@ -77,26 +81,28 @@ async def http_post_json(*args: typing.Any, **kwargs: typing.Any) -> typing.Dict
             return await response.json()
 
 
-def get_var_dict_from_ctx(ctx: ContextA, prefix: str = '_') -> typing.Dict[str, typing.Any]:
+def get_var_dict_from_ctx(
+    ctx: ContextA, prefix: str = "_"
+) -> typing.Dict[str, typing.Any]:
     """
     Returns the dict to be used in REPL for a given Context.
     """
 
     raw_var_dict = {
-        'author': ctx.author,
-        'bot': ctx.bot,
-        'channel': ctx.channel,
-        'ctx': ctx,
-        'find': discord.utils.find,
-        'get': discord.utils.get,
-        'guild': ctx.guild,
-        'me': ctx.me,
-        'http_get_bytes': http_get_bytes,
-        'http_get_json': http_get_json,
-        'http_post_bytes': http_post_bytes,
-        'http_post_json': http_post_json,
-        'message': ctx.message,
-        'msg': ctx.message
+        "author": ctx.author,
+        "bot": ctx.bot,
+        "channel": ctx.channel,
+        "ctx": ctx,
+        "find": discord.utils.find,
+        "get": discord.utils.get,
+        "guild": ctx.guild,
+        "me": ctx.me,
+        "http_get_bytes": http_get_bytes,
+        "http_get_json": http_get_json,
+        "http_post_bytes": http_post_bytes,
+        "http_post_json": http_post_json,
+        "message": ctx.message,
+        "msg": ctx.message,
     }
 
-    return {f'{prefix}{k}': v for k, v in raw_var_dict.items()}
+    return {f"{prefix}{k}": v for k, v in raw_var_dict.items()}

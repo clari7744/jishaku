@@ -27,9 +27,9 @@ import discord
 from discord.ext import commands
 
 LOADABLES = (
-    ('j!1 ', 'tests.subclassed_module_1'),
-    ('j!2 ', 'tests.subclassed_module_2'),
-    ('j!n ', 'jishaku'),
+    ("j!1 ", "tests.subclassed_module_1"),
+    ("j!2 ", "tests.subclassed_module_2"),
+    ("j!n ", "jishaku"),
 )
 
 
@@ -44,10 +44,10 @@ async def async_entrypoint(token: str):
 
     # Connect all bots
     # When any bot exits, exit all bots
-    await asyncio.wait([
-        asyncio.create_task(bot.start(token))
-        for bot in bots
-    ], return_when=asyncio.FIRST_COMPLETED)
+    await asyncio.wait(
+        [asyncio.create_task(bot.start(token)) for bot in bots],
+        return_when=asyncio.FIRST_COMPLETED,
+    )
 
     for bot in bots:
         if not bot.is_closed():
@@ -55,12 +55,12 @@ async def async_entrypoint(token: str):
 
 
 @click.command()
-@click.argument('token')
+@click.argument("token")
 def entrypoint(token: str):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    log_format = logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s')
+    log_format = logging.Formatter("%(asctime)s:%(levelname)s:%(name)s: %(message)s")
     log_stream = logging.StreamHandler(stream=sys.stdout)
 
     log_stream.setFormatter(log_format)

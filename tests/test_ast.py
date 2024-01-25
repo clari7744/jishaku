@@ -16,7 +16,10 @@ from jishaku.repl.disassembly import create_tree
 
 def test_ast_missing_fields():
     # should not raise
-    create_tree(inspect.cleandoc("""
+    create_tree(
+        inspect.cleandoc("""
         def h(*, a):
             print(a)
-    """), use_ansi=False)
+    """),
+        use_ansi=False,
+    )

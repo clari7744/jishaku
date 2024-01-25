@@ -25,12 +25,16 @@ class Magnet2(*jishaku.OPTIONAL_FEATURES, *jishaku.STANDARD_FEATURES):  # pylint
     The extended Jishaku cog
     """
 
-    @jishaku.Feature.Command(name="jishaku", aliases=["jsk"], invoke_without_command=True, ignore_extra=False)
+    @jishaku.Feature.Command(
+        name="jishaku", aliases=["jsk"], invoke_without_command=True, ignore_extra=False
+    )
     async def jsk(self, ctx: ContextT):
         """
         override test
         """
-        return await ctx.send("The behavior of this command has been overridden directly.")
+        return await ctx.send(
+            "The behavior of this command has been overridden directly."
+        )
 
 
 async def setup(bot: commands.Bot):

@@ -34,7 +34,17 @@ __all__ = (
     "setup",
 )
 
-STANDARD_FEATURES = (VoiceFeature, GuildFeature, FilesystemFeature, InvocationFeature, ShellFeature, SQLFeature, PythonFeature, ManagementFeature, RootCommand)
+STANDARD_FEATURES = (
+    VoiceFeature,
+    GuildFeature,
+    FilesystemFeature,
+    InvocationFeature,
+    ShellFeature,
+    SQLFeature,
+    PythonFeature,
+    ManagementFeature,
+    RootCommand,
+)
 
 OPTIONAL_FEATURES: typing.List[typing.Type[Feature]] = []
 

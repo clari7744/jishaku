@@ -31,7 +31,7 @@ from jishaku.paginators import PaginatorInterface, WrappedPaginator
 from jishaku.shell import ShellReader
 from jishaku.types import ContextA
 
-SCAFFOLD_FOLDER = pathlib.Path(__file__).parent / 'scaffolds'
+SCAFFOLD_FOLDER = pathlib.Path(__file__).parent / "scaffolds"
 
 
 @contextlib.contextmanager
@@ -51,17 +51,17 @@ def scaffold(name: str, **kwargs: typing.Any):
         temp = pathlib.Path(temp)
 
         for item in source.glob("**/*"):
-            if '__pycache__' in str(item):
+            if "__pycache__" in str(item):
                 continue
 
             if item.is_file():
-                with open(item, 'r', encoding='utf-8') as fp:
+                with open(item, "r", encoding="utf-8") as fp:
                     content = fp.read()
 
                 target = temp / item.relative_to(source)
                 target.parent.mkdir(parents=True, exist_ok=True)
 
-                with open(target, 'w', encoding='utf-8') as fp:
+                with open(target, "w", encoding="utf-8") as fp:
                     fp.write(content.format(**kwargs))
 
         yield temp
@@ -75,9 +75,13 @@ class ShellFeature(Feature):
     class ShellStandardInputModal(ui.Modal, title="Type input"):
         """Modal that prompts users for text to provide to stdin"""
 
-        stdin_content: ui.TextInput[ui.Modal] = ui.TextInput(label="Text", style=discord.TextStyle.short)
+        stdin_content: ui.TextInput[ui.Modal] = ui.TextInput(
+            label="Text", style=discord.TextStyle.short
+        )
 
-        def __init__(self, reader: ShellReader, *args: typing.Any, **kwargs: typing.Any):
+        def __init__(
+            self, reader: ShellReader, *args: typing.Any, **kwargs: typing.Any
+        ):
             super().__init__(*args, timeout=300, **kwargs)
             self.reader = reader
 
@@ -86,22 +90,24 @@ class ShellFeature(Feature):
 
             if self.reader.stdin and self.reader.stdin.writable():
                 if sys.platform == "win32":
-                    self.reader.stdin.write(f"{value}\r\n".encode('utf-8'))
+                    self.reader.stdin.write(f"{value}\r\n".encode("utf-8"))
                 else:
-                    self.reader.stdin.write(f"{value}\r".encode('utf-8'))
+                    self.reader.stdin.write(f"{value}\r".encode("utf-8"))
                 self.reader.stdin.flush()
 
                 await interaction.response.send_message(
-                    content="Sent into stdin",
-                    ephemeral=True
+                    content="Sent into stdin", ephemeral=True
                 )
             else:
                 await interaction.response.send_message(
-                    content="Stdin is not writable",
-                    ephemeral=True
+                    content="Stdin is not writable", ephemeral=True
                 )
 
-    @Feature.Command(parent="jsk", name="shell", aliases=["bash", "sh", "powershell", "ps1", "ps", "cmd", "terminal"])
+    @Feature.Command(
+        parent="jsk",
+        name="shell",
+        aliases=["bash", "sh", "powershell", "ps1", "ps", "cmd", "terminal"],
+    )
     async def jsk_shell(self, ctx: ContextA, *, argument: codeblock_converter):  # type: ignore
         """
         Executes statements in the system shell.
@@ -113,21 +119,30 @@ class ShellFeature(Feature):
         if typing.TYPE_CHECKING:
             argument: Codeblock = argument  # type: ignore
 
-        async with ReplResponseReactor(ctx.message):
+        async with ReplResponseReactor(ctx):
             with self.submit(ctx):
-                with ShellReader(argument.content, escape_ansi=not Flags.use_ansi(ctx)) as reader:
+                with ShellReader(
+                    argument.content, escape_ansi=not Flags.use_ansi(ctx)
+                ) as reader:
                     prefix = "```" + reader.highlight
 
                     paginator = WrappedPaginator(prefix=prefix, max_size=1975)
                     paginator.add_line(f"{reader.ps1} {argument.content}\n")
 
                     async def send_standard_input(interaction: discord.Interaction):
-                        await interaction.response.send_modal(self.ShellStandardInputModal(reader))
+                        await interaction.response.send_modal(
+                            self.ShellStandardInputModal(reader)
+                        )
 
                     stdin_button = ui.Button(label="\N{KEYBOARD} Send standard input")
                     stdin_button.callback = send_standard_input
 
-                    interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author, additional_buttons=[stdin_button])
+                    interface = PaginatorInterface(
+                        ctx.bot,
+                        paginator,
+                        owner=ctx.author,
+                        additional_buttons=[stdin_button],
+                    )
                     self.bot.loop.create_task(interface.send_to(ctx))
 
                     async for line in reader:
@@ -146,7 +161,10 @@ class ShellFeature(Feature):
         if typing.TYPE_CHECKING:
             argument: Codeblock = argument  # type: ignore
 
-        return await ctx.invoke(self.jsk_shell, argument=Codeblock(argument.language, "git " + argument.content))  # type: ignore
+        return await ctx.invoke(
+            self.jsk_shell,
+            argument=Codeblock(argument.language, "git " + argument.content),
+        )  # type: ignore
 
     @Feature.Command(parent="jsk", name="pip")
     async def jsk_pip(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
@@ -161,20 +179,26 @@ class ShellFeature(Feature):
         location = pathlib.Path(sys.prefix)
 
         for test in (
-            location / 'bin' / 'pip',
-            location / 'bin' / 'pip3',
-            location / 'Scripts' / 'pip.exe',
-            location / 'Scripts' / 'pip3.exe',
+            location / "bin" / "pip",
+            location / "bin" / "pip3",
+            location / "Scripts" / "pip.exe",
+            location / "Scripts" / "pip3.exe",
         ):
             if test.exists() and test.is_file():
                 executable = str(test)
                 break
 
-        return await ctx.invoke(self.jsk_shell, argument=Codeblock(argument.language, f"{executable} {argument.content}"))  # type: ignore
+        return await ctx.invoke(
+            self.jsk_shell,
+            argument=Codeblock(argument.language, f"{executable} {argument.content}"),
+        )  # type: ignore
 
-    if shutil.which('node') and shutil.which('npm'):
+    if shutil.which("node") and shutil.which("npm"):
+
         @Feature.Command(parent="jsk", name="node")
-        async def jsk_node(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
+        async def jsk_node(
+            self, ctx: commands.Context, *, argument: codeblock_converter
+        ):  # type: ignore
             """
             Shortcut for scaffolding and executing 'npm run'. Only exists if the executables are detected.
             """
@@ -182,14 +206,25 @@ class ShellFeature(Feature):
             if typing.TYPE_CHECKING:
                 argument: Codeblock = argument  # type: ignore
 
-            requirements = ''.join(f"npm install {match} && " for match in re.findall('// jsk require: (.+)', argument.content))
+            requirements = "".join(
+                f"npm install {match} && "
+                for match in re.findall("// jsk require: (.+)", argument.content)
+            )
 
-            with scaffold('npm', content=argument.content) as directory:
-                return await ctx.invoke(self.jsk_shell, argument=Codeblock("js", f"cd {directory} && {requirements}npm run main"))  # type: ignore
+            with scaffold("npm", content=argument.content) as directory:
+                return await ctx.invoke(
+                    self.jsk_shell,
+                    argument=Codeblock(
+                        "js", f"cd {directory} && {requirements}npm run main"
+                    ),
+                )  # type: ignore
 
-    if shutil.which('pyright'):
+    if shutil.which("pyright"):
+
         @Feature.Command(parent="jsk", name="pyright")
-        async def jsk_pyright(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
+        async def jsk_pyright(
+            self, ctx: commands.Context, *, argument: codeblock_converter
+        ):  # type: ignore
             """
             Shortcut for scaffolding and executing 'pyright main.py'. Only exists if the executables are detected.
             """
@@ -197,12 +232,18 @@ class ShellFeature(Feature):
             if typing.TYPE_CHECKING:
                 argument: Codeblock = argument  # type: ignore
 
-            with scaffold('pyright', content=argument.content) as directory:
-                return await ctx.invoke(self.jsk_shell, argument=Codeblock("js", f"cd {directory} && pyright main.py"))  # type: ignore
+            with scaffold("pyright", content=argument.content) as directory:
+                return await ctx.invoke(
+                    self.jsk_shell,
+                    argument=Codeblock("js", f"cd {directory} && pyright main.py"),
+                )  # type: ignore
 
-    if shutil.which('rustc') and shutil.which('cargo'):
+    if shutil.which("rustc") and shutil.which("cargo"):
+
         @Feature.Command(parent="jsk", name="rustc")
-        async def jsk_rustc(self, ctx: commands.Context, *, argument: codeblock_converter):  # type: ignore
+        async def jsk_rustc(
+            self, ctx: commands.Context, *, argument: codeblock_converter
+        ):  # type: ignore
             """
             Shortcut for scaffolding and executing 'cargo run'. Only exists if the executables are detected.
             """
@@ -210,7 +251,14 @@ class ShellFeature(Feature):
             if typing.TYPE_CHECKING:
                 argument: Codeblock = argument  # type: ignore
 
-            requirements = '\n'.join(re.findall('// jsk require: (.+)', argument.content))
+            requirements = "\n".join(
+                re.findall("// jsk require: (.+)", argument.content)
+            )
 
-            with scaffold('cargo', content=argument.content, requirements=requirements) as directory:
-                return await ctx.invoke(self.jsk_shell, argument=Codeblock("rust", f"cd {directory} && cargo run"))  # type: ignore
+            with scaffold(
+                "cargo", content=argument.content, requirements=requirements
+            ) as directory:
+                return await ctx.invoke(
+                    self.jsk_shell,
+                    argument=Codeblock("rust", f"cd {directory} && cargo run"),
+                )  # type: ignore

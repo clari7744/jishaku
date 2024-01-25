@@ -39,13 +39,19 @@ class SlimUserConverter(UserIDConverter):  # pylint: disable=too-few-public-meth
     Identical to the stock UserConverter, but does not perform plaintext name checks.
     """
 
-    async def convert(self, ctx: ContextA, argument: str) -> typing.Union[discord.Member, discord.User]:
+    async def convert(
+        self, ctx: ContextA, argument: str
+    ) -> typing.Union[discord.Member, discord.User]:
         """Converter method"""
-        match = self._get_id_match(argument) or re.match(r"<@!?([0-9]{15,20})>$", argument)  # type: ignore
+        match = self._get_id_match(argument) or re.match(
+            r"<@!?([0-9]{15,20})>$", argument
+        )  # type: ignore
 
         if match is not None:
             user_id = int(match.group(1))
-            result = ctx.bot.get_user(user_id) or discord.utils.get(ctx.message.mentions, id=user_id)
+            result = ctx.bot.get_user(user_id) or discord.utils.get(
+                ctx.message.mentions, id=user_id
+            )
             if result is None:
                 try:
                     result = await ctx.bot.fetch_user(user_id)
@@ -65,9 +71,13 @@ class SlimChannelConverter(ChannelIDConverter):  # pylint: disable=too-few-publi
 
     async def convert(
         self, ctx: ContextA, argument: str
-    ) -> typing.Union[discord.abc.GuildChannel, discord.abc.PrivateChannel, discord.Thread]:
+    ) -> typing.Union[
+        discord.abc.GuildChannel, discord.abc.PrivateChannel, discord.Thread
+    ]:
         """Converter method"""
-        match = self._get_id_match(argument) or re.match(r"<#([0-9]{15,20})>$", argument)
+        match = self._get_id_match(argument) or re.match(
+            r"<#([0-9]{15,20})>$", argument
+        )
 
         if match is not None:
             channel_id = int(match.group(1))
@@ -88,8 +98,18 @@ class InvocationFeature(Feature):
 
     OVERRIDE_SIGNATURE = typing.Union[SlimUserConverter, SlimChannelConverter]
 
-    @Feature.Command(parent="jsk", name="override", aliases=["execute", "exec", "override!", "execute!", "exec!"])
-    async def jsk_override(self, ctx: ContextT, overrides: commands.Greedy[OVERRIDE_SIGNATURE], *, command_string: str):
+    @Feature.Command(
+        parent="jsk",
+        name="override",
+        aliases=["execute", "exec", "override!", "execute!", "exec!"],
+    )
+    async def jsk_override(
+        self,
+        ctx: ContextT,
+        overrides: commands.Greedy[OVERRIDE_SIGNATURE],
+        *,
+        command_string: str,
+    ):
         """
         Run a command with a different user, channel, or thread, optionally bypassing checks and cooldowns.
 
@@ -114,7 +134,9 @@ class InvocationFeature(Feature):
                     target_member = None
 
                     with contextlib.suppress(discord.HTTPException):
-                        target_member = ctx.guild.get_member(override.id) or await ctx.guild.fetch_member(override.id)
+                        target_member = ctx.guild.get_member(
+                            override.id
+                        ) or await ctx.guild.fetch_member(override.id)
 
                     kwargs["author"] = target_member or override
                 else:
@@ -139,7 +161,9 @@ class InvocationFeature(Feature):
         await alt_ctx.command.invoke(alt_ctx)
         return
 
-    @Feature.Command(parent="jsk", name="rerun", aliases=["rr", "rerun!", "rr!", "re", "re!"])
+    @Feature.Command(
+        parent="jsk", name="rerun", aliases=["rr", "rerun!", "rr!", "re", "re!"]
+    )
     async def jsk_rerun(
         self,
         ctx: ContextT,
@@ -160,7 +184,9 @@ class InvocationFeature(Feature):
             ref = ctx.message.reference
             if ref is not None:
                 with contextlib.suppress(commands.MessageNotFound):
-                    target = await commands.MessageConverter().convert(ctx, ref.jump_url)
+                    target = await commands.MessageConverter().convert(
+                        ctx, ref.jump_url
+                    )
 
         if not isinstance(target, discord.Message):
             return await ctx.send("Reply to a message or provide a message link.")
@@ -187,7 +213,9 @@ class InvocationFeature(Feature):
         if not any(isinstance(o, (discord.Member, discord.User)) for o in overrides):
             overrides = [target.author, *overrides]
 
-        await self.jsk_override(msg_ctx, overrides, command_string=target.content.lstrip(ctx.prefix or ""))
+        await self.jsk_override(
+            msg_ctx, overrides, command_string=target.content.lstrip(ctx.prefix or "")
+        )
 
     @Feature.Command(parent="jsk", name="repeat")
     async def jsk_repeat(self, ctx: ContextT, times: int, *, command_string: str):
@@ -201,13 +229,17 @@ class InvocationFeature(Feature):
         with self.submit(ctx):  # allow repeats to be cancelled
             for _ in range(times):
                 if ctx.prefix:
-                    alt_ctx = await copy_context_with(ctx, content=ctx.prefix + command_string)
+                    alt_ctx = await copy_context_with(
+                        ctx, content=ctx.prefix + command_string
+                    )
                 else:
                     await ctx.send("Reparsing requires a prefix")
                     return
 
                 if alt_ctx.command is None:
-                    return await ctx.send(f'Command "{alt_ctx.invoked_with}" is not found')
+                    return await ctx.send(
+                        f'Command "{alt_ctx.invoked_with}" is not found'
+                    )
 
                 await alt_ctx.command.reinvoke(alt_ctx)
 
@@ -228,12 +260,14 @@ class InvocationFeature(Feature):
 
         start = time.perf_counter()
 
-        async with ReplResponseReactor(ctx.message):
+        async with ReplResponseReactor(ctx):
             with self.submit(ctx):
                 await alt_ctx.command.invoke(alt_ctx)
 
         end = time.perf_counter()
-        return await ctx.send(f"Command `{alt_ctx.command.qualified_name}` finished in {end - start:.3f}s.")
+        return await ctx.send(
+            f"Command `{alt_ctx.command.qualified_name}` finished in {end - start:.3f}s."
+        )
 
     @Feature.Command(parent="jsk", name="source", aliases=["src"])
     async def jsk_source(self, ctx: ContextA, *, command_name: str):
@@ -248,7 +282,9 @@ class InvocationFeature(Feature):
         try:
             source_lines, _ = inspect.getsourcelines(command.callback)  # type: ignore
         except (TypeError, OSError):
-            return await ctx.send(f"Was unable to retrieve the source for `{command}` for some reason.")
+            return await ctx.send(
+                f"Was unable to retrieve the source for `{command}` for some reason."
+            )
 
         filename = "source.py"
 
@@ -261,11 +297,15 @@ class InvocationFeature(Feature):
         source_text = "".join(source_lines)
 
         if use_file_check(ctx, len(source_text)):  # File "full content" preview limit
-            await ctx.send(file=discord.File(filename=filename, fp=io.BytesIO(source_text.encode("utf-8"))))
+            await ctx.send(
+                file=discord.File(
+                    filename=filename, fp=io.BytesIO(source_text.encode("utf-8"))
+                )
+            )
         else:
             paginator = WrappedPaginator(prefix="```py", suffix="```", max_size=1980)
 
-            paginator.add_line(source_text.replace("```", "``\N{zero width space}`"))
+            paginator.add_line(source_text.replace("```", "``\N{ZERO WIDTH SPACE}`"))
 
             interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
             await interface.send_to(ctx)

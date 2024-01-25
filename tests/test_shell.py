@@ -36,10 +36,7 @@ async def test_reader_basic():
     await asyncio.sleep(0.5)  # Ensure ShellReader.executor_wrapper completes
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="Tests with Linux-only sh syntax"
-)
+@pytest.mark.skipif(sys.platform == "win32", reason="Tests with Linux-only sh syntax")
 @pytest.mark.asyncio
 async def test_linux():
     return_data: list[str] = []
@@ -63,14 +60,13 @@ async def test_linux():
 
 
 @pytest.mark.skipif(
-    sys.platform != "win32",
-    reason="Tests with Windows-only cmd syntax"
+    sys.platform != "win32", reason="Tests with Windows-only cmd syntax"
 )
 @pytest.mark.asyncio
 async def test_windows():
     return_data: list[str] = []
 
-    with ShellReader("cmd /c \"echo one && echo two && echo three 1>&2\"") as reader:
+    with ShellReader('cmd /c "echo one && echo two && echo three 1>&2"') as reader:
         async for result in reader:
             return_data.append(result)
 

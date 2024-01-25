@@ -29,7 +29,15 @@ from jishaku.formatting import MultilineFormatter
 from jishaku.functools import AsyncSender
 from jishaku.math import format_bargraph, format_stddev
 from jishaku.paginators import PaginatorInterface, WrappedPaginator, use_file_check
-from jishaku.repl import AsyncCodeExecutor, Scope, all_inspections, create_tree, disassemble, get_adaptive_spans, get_var_dict_from_ctx
+from jishaku.repl import (
+    AsyncCodeExecutor,
+    Scope,
+    all_inspections,
+    create_tree,
+    disassemble,
+    get_adaptive_spans,
+    get_var_dict_from_ctx,
+)
 from jishaku.types import ContextA
 
 try:
@@ -63,7 +71,9 @@ class PythonFeature(Feature):
         return Scope()
 
     @Feature.Command(parent="jsk", name="retain")
-    async def jsk_retain(self, ctx: ContextA, *, toggle: bool = None):  # type: ignore
+    async def jsk_retain(
+        self, ctx: ContextA, *, toggle: typing.Union[bool, None] = None
+    ):  # type: ignore
         """
         Turn variable retention for REPL on or off.
 
@@ -82,13 +92,17 @@ class PythonFeature(Feature):
 
             self.retain = True
             self._scope = Scope()
-            return await ctx.send("Variable retention is ON. Future REPL sessions will retain their scope.")
+            return await ctx.send(
+                "Variable retention is ON. Future REPL sessions will retain their scope."
+            )
 
         if not self.retain:
             return await ctx.send("Variable retention is already set to OFF.")
 
         self.retain = False
-        return await ctx.send("Variable retention is OFF. Future REPL sessions will dispose their scope when done.")
+        return await ctx.send(
+            "Variable retention is OFF. Future REPL sessions will dispose their scope when done."
+        )
 
     async def jsk_python_result_handling(self, ctx: ContextA, result: typing.Any):  # pylint: disable=too-many-return-statements
         """
@@ -103,8 +117,20 @@ class PythonFeature(Feature):
         if isinstance(result, discord.File):
             return await ctx.send(file=result)
 
+        if isinstance(result, typing.Iterable) and all(
+            isinstance(obj, discord.File) for obj in result
+        ):
+            return await ctx.send(files=result)
+
         if isinstance(result, discord.Embed):
             return await ctx.send(embed=result)
+
+        if (
+            isinstance(result, typing.Iterable)
+            and all(isinstance(obj, discord.Embed) for obj in result)
+            and discord.__version__[0] == "2"
+        ):
+            return await ctx.send(embeds=result)
 
         if isinstance(result, PaginatorInterface):
             return await result.send_to(ctx)
@@ -115,15 +141,14 @@ class PythonFeature(Feature):
 
         # Eventually the below handling should probably be put somewhere else
         if len(result) <= 2000:
-            if result.strip() == '':
+            if result.strip() == "":
                 result = "\u200b"
 
             if self.bot.http.token:
                 result = result.replace(self.bot.http.token, "[token omitted]")
 
             return await ctx.send(
-                result,
-                allowed_mentions=discord.AllowedMentions.none()
+                result, allowed_mentions=discord.AllowedMentions.none()
             )
 
         if use_file_check(ctx, len(result)):  # File "full content" preview limit
@@ -132,21 +157,24 @@ class PythonFeature(Feature):
             # Since this avoids escape issues and is more intuitive than pagination for
             #  long results, it will now be prioritized over PaginatorInterface if the
             #  resultant content is below the filesize threshold
-            return await ctx.send(file=discord.File(
-                filename="output.py",
-                fp=io.BytesIO(result.encode('utf-8'))
-            ))
+            return await ctx.send(
+                file=discord.File(
+                    filename="output.py", fp=io.BytesIO(result.encode("utf-8"))
+                )
+            )
 
         # inconsistency here, results get wrapped in codeblocks when they are too large
         #  but don't if they're not. probably not that bad, but noting for later review
-        paginator = WrappedPaginator(prefix='```py', suffix='```', max_size=1980)
+        paginator = WrappedPaginator(prefix="```py", suffix="```", max_size=1980)
 
         paginator.add_line(result)
 
         interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
         return await interface.send_to(ctx)
 
-    def jsk_python_get_convertables(self, ctx: ContextA) -> typing.Tuple[typing.Dict[str, typing.Any], typing.Dict[str, str]]:
+    def jsk_python_get_convertables(
+        self, ctx: ContextA
+    ) -> typing.Tuple[typing.Dict[str, typing.Any], typing.Dict[str, str]]:
         """
         Gets the arg dict and convertables for this scope.
 
@@ -158,7 +186,7 @@ class PythonFeature(Feature):
         arg_dict["_"] = self.last_result
         convertables: typing.Dict[str, str] = {}
 
-        if getattr(ctx, 'interaction', None) is None:
+        if getattr(ctx, "interaction", None) is None:
             for index, user in enumerate(ctx.message.mentions):
                 arg_dict[f"__user_mention_{index}"] = user
                 convertables[user.mention] = f"__user_mention_{index}"
@@ -186,9 +214,14 @@ class PythonFeature(Feature):
         scope = self.scope
 
         try:
-            async with ReplResponseReactor(ctx.message):
+            async with ReplResponseReactor(ctx):
                 with self.submit(ctx):
-                    executor = AsyncCodeExecutor(argument.content, scope, arg_dict=arg_dict, convertables=convertables)
+                    executor = AsyncCodeExecutor(
+                        argument.content,
+                        scope,
+                        arg_dict=arg_dict,
+                        convertables=convertables,
+                    )
                     async for send, result in AsyncSender(executor):  # type: ignore
                         send: typing.Callable[..., None]
                         result: typing.Any
@@ -203,7 +236,11 @@ class PythonFeature(Feature):
         finally:
             scope.clear_intersection(arg_dict)
 
-    @Feature.Command(parent="jsk", name="py_inspect", aliases=["pyi", "python_inspect", "pythoninspect"])
+    @Feature.Command(
+        parent="jsk",
+        name="py_inspect",
+        aliases=["pyi", "python_inspect", "pythoninspect"],
+    )
     async def jsk_python_inspect(self, ctx: ContextA, *, argument: codeblock_converter):  # type: ignore
         """
         Evaluation of Python code with inspect information.
@@ -216,9 +253,14 @@ class PythonFeature(Feature):
         scope = self.scope
 
         try:
-            async with ReplResponseReactor(ctx.message):
+            async with ReplResponseReactor(ctx):
                 with self.submit(ctx):
-                    executor = AsyncCodeExecutor(argument.content, scope, arg_dict=arg_dict, convertables=convertables)
+                    executor = AsyncCodeExecutor(
+                        argument.content,
+                        scope,
+                        arg_dict=arg_dict,
+                        convertables=convertables,
+                    )
                     async for send, result in AsyncSender(executor):  # type: ignore
                         send: typing.Callable[..., None]
                         result: typing.Any
@@ -228,7 +270,9 @@ class PythonFeature(Feature):
                         header = repr(result).replace("``", "`\u200b`")
 
                         if self.bot.http.token:
-                            header = header.replace(self.bot.http.token, "[token omitted]")
+                            header = header.replace(
+                                self.bot.http.token, "[token omitted]"
+                            )
 
                         if len(header) > 485:
                             header = header[0:482] + "..."
@@ -238,29 +282,40 @@ class PythonFeature(Feature):
                         for name, res in all_inspections(result):
                             lines.append(f"{name:16.16} :: {res}")
 
-                        docstring = (inspect.getdoc(result) or '').strip()
+                        docstring = (inspect.getdoc(result) or "").strip()
 
                         if docstring:
                             lines.append(f"\n=== Help ===\n\n{docstring}")
 
                         text = "\n".join(lines)
 
-                        if use_file_check(ctx, len(text)):  # File "full content" preview limit
-                            send(await ctx.send(file=discord.File(
-                                filename="inspection.prolog",
-                                fp=io.BytesIO(text.encode('utf-8'))
-                            )))
+                        if use_file_check(
+                            ctx, len(text)
+                        ):  # File "full content" preview limit
+                            send(
+                                await ctx.send(
+                                    file=discord.File(
+                                        filename="inspection.prolog",
+                                        fp=io.BytesIO(text.encode("utf-8")),
+                                    )
+                                )
+                            )
                         else:
-                            paginator = WrappedPaginator(prefix="```prolog", max_size=1980)
+                            paginator = WrappedPaginator(
+                                prefix="```prolog", max_size=1980
+                            )
 
                             paginator.add_line(text)
 
-                            interface = PaginatorInterface(ctx.bot, paginator, owner=ctx.author)
+                            interface = PaginatorInterface(
+                                ctx.bot, paginator, owner=ctx.author
+                            )
                             send(await interface.send_to(ctx))
         finally:
             scope.clear_intersection(arg_dict)
 
     if line_profiler is not None:
+
         @Feature.Command(parent="jsk", name="timeit")
         async def jsk_timeit(self, ctx: ContextA, *, argument: codeblock_converter):  # type: ignore
             """
@@ -274,22 +329,28 @@ class PythonFeature(Feature):
             scope = self.scope
 
             try:
-                async with ReplResponseReactor(ctx.message):
+                async with ReplResponseReactor(ctx):
                     with self.submit(ctx):
                         executor = AsyncCodeExecutor(
-                            argument.content, scope,
+                            argument.content,
+                            scope,
                             arg_dict=arg_dict,
                             convertables=convertables,
-                            auto_return=False
+                            auto_return=False,
                         )
 
                         overall_start = time.perf_counter()
                         count: int = 0
                         timings: typing.List[float] = []
                         ioless_timings: typing.List[float] = []
-                        line_timings: typing.Dict[int, typing.List[float]] = collections.defaultdict(list)
+                        line_timings: typing.Dict[int, typing.List[float]] = (
+                            collections.defaultdict(list)
+                        )
 
-                        while count < 10_000 and (time.perf_counter() - overall_start) < 30.0:
+                        while (
+                            count < 10_000
+                            and (time.perf_counter() - overall_start) < 30.0
+                        ):
                             profile = line_profiler.LineProfiler()  # type: ignore
                             profile.add_function(executor.function)  # type: ignore
 
@@ -305,9 +366,13 @@ class PythonFeature(Feature):
 
                                     self.last_result = result
 
-                                    send(await self.jsk_python_result_handling(ctx, result))
-                                    # Reduces likelihood of hardblocking
-                                    await asyncio.sleep(0.001)
+                                    send(
+                                        await self.jsk_python_result_handling(
+                                            ctx, result
+                                        )
+                                    )
+                                    # Reduces likelyhood of hardblocking
+                                    await asyncio.sleep(0.01)
 
                                 end = time.perf_counter()
                             finally:
@@ -323,15 +388,21 @@ class PythonFeature(Feature):
 
                             for function in profile.code_map.values():  # type: ignore
                                 for timing in function.values():  # type: ignore
-                                    line_timings[timing['lineno']].append(timing['total_time'] * profile.timer_unit)  # type: ignore
-                                    ioless_time += timing['total_time'] * profile.timer_unit  # type: ignore
+                                    line_timings[timing["lineno"]].append(
+                                        timing["total_time"] * profile.timer_unit
+                                    )  # type: ignore
+                                    ioless_time += (
+                                        timing["total_time"] * profile.timer_unit
+                                    )  # type: ignore
 
                             ioless_timings.append(ioless_time)
 
                         execution_time = format_stddev(timings)
                         active_time = format_stddev(ioless_timings)
 
-                        max_line_time = max(max(timing) for timing in line_timings.values())
+                        max_line_time = max(
+                            max(timing) for timing in line_timings.values()
+                        )
 
                         linecache = executor.create_linecache()
                         lines: typing.List[str] = []
@@ -343,21 +414,33 @@ class PythonFeature(Feature):
                             blocks = format_bargraph(percentage, 5)
 
                             line = f"{format_stddev(timing)} {blocks} {linecache[lineno - 1] if lineno <= len(linecache) else ''}"
-                            color = '\u001b[31m' if percentage > 6 / 8 else '\u001b[33m' if percentage > 3 / 8 else '\u001b[32m'
+                            color = (
+                                "\u001b[31m"
+                                if percentage > 6 / 8
+                                else "\u001b[33m"
+                                if percentage > 3 / 8
+                                else "\u001b[32m"
+                            )
 
-                            lines.append('\u001b[0m' + color + line if Flags.use_ansi(ctx) else line)
+                            lines.append(
+                                "\u001b[0m" + color + line
+                                if Flags.use_ansi(ctx)
+                                else line
+                            )
 
                         await ctx.send(
-                            content="\n".join([
-                                f"Executed {count} times",
-                                f"Actual execution time: {execution_time}",
-                                f"Active (non-waiting) time: {active_time}",
-                                "**Delay will be added by async setup, use only for relative measurements**",
-                            ]),
+                            content="\n".join(
+                                [
+                                    f"Executed {count} times",
+                                    f"Actual execution time: {execution_time}",
+                                    f"Active (non-waiting) time: {active_time}",
+                                    "**Delay will be added by async setup, use only for relative measurements**",
+                                ]
+                            ),
                             file=discord.File(
                                 filename="lines.ansi",
-                                fp=io.BytesIO(''.join(lines).encode('utf-8'))
-                            )
+                                fp=io.BytesIO("".join(lines).encode("utf-8")),
+                            ),
                         )
 
             finally:
@@ -374,16 +457,17 @@ class PythonFeature(Feature):
 
         arg_dict = get_var_dict_from_ctx(ctx, Flags.SCOPE_PREFIX)
 
-        async with ReplResponseReactor(ctx.message):
+        async with ReplResponseReactor(ctx):
             text = "\n".join(disassemble(argument.content, arg_dict=arg_dict))
 
             if use_file_check(ctx, len(text)):  # File "full content" preview limit
-                await ctx.send(file=discord.File(
-                    filename="dis.py",
-                    fp=io.BytesIO(text.encode('utf-8'))
-                ))
+                await ctx.send(
+                    file=discord.File(
+                        filename="dis.py", fp=io.BytesIO(text.encode("utf-8"))
+                    )
+                )
             else:
-                paginator = WrappedPaginator(prefix='```py', max_size=1980)
+                paginator = WrappedPaginator(prefix="```py", max_size=1980)
 
                 paginator.add_line(text)
 
@@ -399,15 +483,17 @@ class PythonFeature(Feature):
         if typing.TYPE_CHECKING:
             argument: Codeblock = argument  # type: ignore
 
-        async with ReplResponseReactor(ctx.message):
+        async with ReplResponseReactor(ctx):
             text = create_tree(argument.content, use_ansi=Flags.use_ansi(ctx))
 
-            await ctx.send(file=discord.File(
-                filename="ast.ansi",
-                fp=io.BytesIO(text.encode('utf-8'))
-            ))
+            await ctx.send(
+                file=discord.File(
+                    filename="ast.ansi", fp=io.BytesIO(text.encode("utf-8"))
+                )
+            )
 
     if sys.version_info >= (3, 11):
+
         @Feature.Command(parent="jsk", name="specialist")
         async def jsk_specialist(self, ctx: ContextA, *, argument: codeblock_converter):  # type: ignore
             """
@@ -421,9 +507,14 @@ class PythonFeature(Feature):
             scope = self.scope
 
             try:
-                async with ReplResponseReactor(ctx.message):
+                async with ReplResponseReactor(ctx):
                     with self.submit(ctx):
-                        executor = AsyncCodeExecutor(argument.content, scope, arg_dict=arg_dict, convertables=convertables)
+                        executor = AsyncCodeExecutor(
+                            argument.content,
+                            scope,
+                            arg_dict=arg_dict,
+                            convertables=convertables,
+                        )
                         async for send, result in AsyncSender(executor):  # type: ignore
                             send: typing.Callable[..., None]
                             result: typing.Any
@@ -435,11 +526,16 @@ class PythonFeature(Feature):
 
                             send(await self.jsk_python_result_handling(ctx, result))
 
-                        formatter = MultilineFormatter(argument.content, add_newline=True)
+                        formatter = MultilineFormatter(
+                            argument.content, add_newline=True
+                        )
 
-                        for (
-                            index,
-                            (instruction, line, span, specialized, adaptive)
+                        for index, (
+                            instruction,
+                            line,
+                            span,
+                            specialized,
+                            adaptive,
                         ) in enumerate(get_adaptive_spans(executor.function.__code__)):  # pylint: disable=protected-access
                             if 0 <= line - 1 < len(formatter.lines):
                                 formatter.add_annotation(
@@ -448,15 +544,17 @@ class PythonFeature(Feature):
                                     span,
                                     (index % 6) + 31,
                                     None,
-                                    45 if specialized else 46 if adaptive else None
+                                    45 if specialized else 46 if adaptive else None,
                                 )
 
                         text = formatter.output(True, Flags.use_ansi(ctx))
 
-                        await ctx.send(file=discord.File(
-                            filename="specialist.ansi",
-                            fp=io.BytesIO(text.encode('utf-8'))
-                        ))
+                        await ctx.send(
+                            file=discord.File(
+                                filename="specialist.ansi",
+                                fp=io.BytesIO(text.encode("utf-8")),
+                            )
+                        )
 
             finally:
                 scope.clear_intersection(arg_dict)
