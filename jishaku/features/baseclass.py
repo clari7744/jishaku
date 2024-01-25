@@ -17,39 +17,25 @@ import contextlib
 import typing
 from datetime import datetime, timezone
 
+import aiohttp
 from discord.ext import commands
 from typing_extensions import Concatenate, ParamSpec
 
 from jishaku.types import BotT, ContextA
 
-__all__ = (
-    'Feature',
-    'CommandTask'
-)
+__all__ = ("Feature", "CommandTask")
 
 
-_ConvertedCommand = commands.Command['Feature', typing.Any, typing.Any]
-_ConvertedGroup = commands.Group['Feature', typing.Any, typing.Any]
+_ConvertedCommand = commands.Command["Feature", typing.Any, typing.Any]
+_ConvertedGroup = commands.Group["Feature", typing.Any, typing.Any]
 
 
-_FeatureCommandToCommand = typing.Callable[
-    ...,
-    typing.Callable[
-        [typing.Callable[..., typing.Any]],
-        _ConvertedCommand
-    ]
-]
-_FeatureCommandToGroup = typing.Callable[
-    ...,
-    typing.Callable[
-        [typing.Callable[..., typing.Any]],
-        _ConvertedGroup
-    ]
-]
+_FeatureCommandToCommand = typing.Callable[..., typing.Callable[[typing.Callable[..., typing.Any]], _ConvertedCommand]]
+_FeatureCommandToGroup = typing.Callable[..., typing.Callable[[typing.Callable[..., typing.Any]], _ConvertedGroup]]
 
-T = typing.TypeVar('T')
-P = ParamSpec('P')
-GenericFeature = typing.TypeVar('GenericFeature', bound='Feature')
+T = typing.TypeVar("T")
+P = ParamSpec("P")
+GenericFeature = typing.TypeVar("GenericFeature", bound="Feature")
 
 
 class CommandTask(typing.NamedTuple):
@@ -59,7 +45,7 @@ class CommandTask(typing.NamedTuple):
 
     index: int  # type: ignore
     ctx: ContextA
-    task: typing.Optional['asyncio.Task[typing.Any]']
+    task: typing.Optional["asyncio.Task[typing.Any]"]
 
 
 class Feature(commands.Cog):
@@ -76,21 +62,13 @@ class Feature(commands.Cog):
         :param standalone_ok: Whether the command should be allowed to be standalone if its parent isn't found.
         """
 
-        def __init__(
-            self,
-            parent: typing.Optional[str] = None,
-            standalone_ok: bool = False,
-            **kwargs: typing.Any
-        ):
+        def __init__(self, parent: typing.Optional[str] = None, standalone_ok: bool = False, **kwargs: typing.Any):
             self.parent: typing.Optional[str] = parent
             self.parent_instance: typing.Optional[Feature.Command[GenericFeature, typing.Any, typing.Any]] = None
             self.standalone_ok = standalone_ok
             self.kwargs = kwargs
             self.callback: typing.Optional[
-                typing.Callable[
-                    Concatenate[GenericFeature, ContextA, P],
-                    typing.Coroutine[typing.Any, typing.Any, T]
-                ]
+                typing.Callable[Concatenate[GenericFeature, ContextA, P], typing.Coroutine[typing.Any, typing.Any, T]]
             ] = None
             self.depth: int = 0
             self.has_children: bool = False
@@ -101,8 +79,8 @@ class Feature(commands.Cog):
                 ...,
                 # This causes a weird pyright bug right now
                 # Concatenate[GenericFeature, ContextA, P],
-                typing.Coroutine[typing.Any, typing.Any, T]
-            ]
+                typing.Coroutine[typing.Any, typing.Any, T],
+            ],
         ):
             self.callback = callback  # type: ignore
             return self
@@ -110,22 +88,26 @@ class Feature(commands.Cog):
         def convert(
             self,
             association_map: typing.Dict[
-                'Feature.Command[GenericFeature, typing.Any, typing.Any]',
-                'commands.Command[GenericFeature, typing.Any, typing.Any]',
-            ]
-        ) -> 'commands.Command[GenericFeature, P, T]':
+                "Feature.Command[GenericFeature, typing.Any, typing.Any]",
+                "commands.Command[GenericFeature, typing.Any, typing.Any]",
+            ],
+        ) -> "commands.Command[GenericFeature, P, T]":
             """
             Attempts to convert this Feature.Command into either a commands.Command or commands.Group
             """
 
             if self.parent:
                 if not self.parent_instance:
-                    raise RuntimeError("A Features.Command declared as having a parent was attempted to be converted before its parent was")
+                    raise RuntimeError(
+                        "A Features.Command declared as having a parent was attempted to be converted before its parent was"
+                    )
 
                 parent = association_map[self.parent_instance]
 
                 if not isinstance(parent, commands.Group):
-                    raise RuntimeError("A Features.Command declared as a parent was associated with a non-commands.Group")
+                    raise RuntimeError(
+                        "A Features.Command declared as a parent was associated with a non-commands.Group"
+                    )
 
                 command_type = parent.group if self.has_children else parent.command
             else:
@@ -143,9 +125,10 @@ class Feature(commands.Cog):
         self.start_time: datetime = datetime.now(timezone.utc)
         self.tasks: typing.Deque[CommandTask] = collections.deque()
         self.task_count: int = 0
+        self.session = getattr(self, "session", getattr(self.bot, "session", aiohttp.ClientSession()))
 
         # Generate and attach commands
-        command_lookup: typing.Dict[str, Feature.Command['Feature', typing.Any, typing.Any]] = {}
+        command_lookup: typing.Dict[str, Feature.Command["Feature", typing.Any, typing.Any]] = {}
 
         for kls in reversed(type(self).__mro__):
             for key, cmd in kls.__dict__.items():
@@ -185,14 +168,10 @@ class Feature(commands.Cog):
         # Sort by depth
         command_set.sort(key=lambda c: c[1].depth)
         association_map: typing.Dict[
-            Feature.Command['Feature', typing.Any, typing.Any],
-            commands.Command['Feature', typing.Any, typing.Any]
+            Feature.Command["Feature", typing.Any, typing.Any], commands.Command["Feature", typing.Any, typing.Any]
         ] = {}
 
-        self.feature_commands: typing.Dict[
-            str,
-            commands.Command['Feature', typing.Any, typing.Any]
-        ] = {}
+        self.feature_commands: typing.Dict[str, commands.Command["Feature", typing.Any, typing.Any]] = {}
 
         for key, cmd in command_set:
             association_map[cmd] = target_cmd = cmd.convert(association_map)
@@ -216,6 +195,10 @@ class Feature(commands.Cog):
         if not await ctx.bot.is_owner(ctx.author):
             raise commands.NotOwner("You must own this bot to use Jishaku.")
         return True
+
+    async def cog_unload(self):
+        if getattr(self, "session", None) and getattr(self.bot, "session", None) is not None:
+            self.bot.loop.create_task(self.session.close())
 
     @contextlib.contextmanager
     def submit(self, ctx: ContextA):

@@ -23,6 +23,7 @@ from jishaku.features.invocation import InvocationFeature
 from jishaku.features.management import ManagementFeature
 from jishaku.features.python import PythonFeature
 from jishaku.features.root_command import RootCommand
+from jishaku.features.rtfm import RTFMFeature
 from jishaku.features.shell import ShellFeature
 from jishaku.features.sql import SQLFeature
 from jishaku.features.voice import VoiceFeature
@@ -34,7 +35,7 @@ __all__ = (
     "setup",
 )
 
-STANDARD_FEATURES = (VoiceFeature, GuildFeature, FilesystemFeature, InvocationFeature, ShellFeature, SQLFeature, PythonFeature, ManagementFeature, RootCommand)
+STANDARD_FEATURES = (VoiceFeature, GuildFeature, FilesystemFeature, InvocationFeature, ShellFeature, SQLFeature, PythonFeature, ManagementFeature, RootCommand, RTFMFeature)
 
 OPTIONAL_FEATURES: typing.List[typing.Type[Feature]] = []
 
