@@ -17,6 +17,7 @@ import contextlib
 import typing
 from datetime import datetime, timezone
 
+import aiohttp
 from discord.ext import commands
 from typing_extensions import Concatenate, ParamSpec
 
@@ -140,6 +141,9 @@ class Feature(commands.Cog):
         self.start_time: datetime = datetime.now(timezone.utc)
         self.tasks: typing.Deque[CommandTask] = collections.deque()
         self.task_count: int = 0
+        self.session = getattr(
+            self, "session", getattr(self.bot, "session", aiohttp.ClientSession())
+        )
 
         # Generate and attach commands
         command_lookup: typing.Dict[
@@ -217,6 +221,13 @@ class Feature(commands.Cog):
         if not await ctx.bot.is_owner(ctx.author):
             raise commands.NotOwner("You must own this bot to use Jishaku.")
         return True
+
+    async def cog_unload(self):
+        if (
+            getattr(self, "session", None)
+            and getattr(self.bot, "session", None) is not None
+        ):
+            self.bot.loop.create_task(self.session.close())
 
     @contextlib.contextmanager
     def submit(self, ctx: ContextA):
